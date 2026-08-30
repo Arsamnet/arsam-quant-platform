@@ -11,5 +11,11 @@ def verify_signature(body: bytes, provided_signature: str | None, secret: str | 
     if provided_signature is None or not provided_signature.startswith("sha256="):
         return False
     provided_digest = provided_signature.removeprefix("sha256=")
-    expected_digest = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(provided_digest, expected_digest)
+    if len(provided_digest) != hashlib.sha256().digest_size * 2:
+        return False
+    try:
+        provided_digest_bytes = bytes.fromhex(provided_digest)
+    except ValueError:
+        return False
+    expected_digest = hmac.digest(secret.encode(), body, hashlib.sha256)
+    return hmac.compare_digest(provided_digest_bytes, expected_digest)

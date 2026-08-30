@@ -1,5 +1,12 @@
-"""Market and account state domain models."""
+"""Market, account, conversion, and symbol specification domain models."""
 
+from fx_platform.domain.market.conversion import CurrencyConversionRate
 from fx_platform.domain.market.models import AccountSnapshot, MarketSnapshot
+from fx_platform.domain.market.specifications import SymbolSpecification
 
-__all__ = ["AccountSnapshot", "MarketSnapshot"]
+__all__ = [
+    "AccountSnapshot",
+    "CurrencyConversionRate",
+    "MarketSnapshot",
+    "SymbolSpecification",
+]

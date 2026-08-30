@@ -11,6 +11,8 @@ from fx_platform.domain.common import (
     require_utc,
 )
 
+_CURRENCY_CODE_LENGTH = 3
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class MarketSnapshot:
@@ -54,6 +56,7 @@ class AccountSnapshot:
     equity: Decimal
     daily_realized_pnl: Decimal
     open_position_count: int
+    currency: str = "USD"
 
     def __post_init__(self) -> None:
         require_utc(self.observed_at, "observed_at")
@@ -62,6 +65,8 @@ class AccountSnapshot:
         require_finite_decimal(self.daily_realized_pnl, "daily_realized_pnl")
         if not self.account_id:
             raise ValueError("account_id must not be empty")
+        if len(self.currency) != _CURRENCY_CODE_LENGTH or self.currency != self.currency.upper():
+            raise ValueError("currency must be an uppercase ISO-style currency code")
         if self.equity < Decimal(0):
             raise ValueError("equity must not be negative")
         if self.open_position_count < 0:

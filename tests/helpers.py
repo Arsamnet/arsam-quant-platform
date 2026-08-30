@@ -7,7 +7,12 @@ from uuid import UUID
 
 from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
 from fx_platform.domain.common import TradeSide
-from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
+from fx_platform.domain.market import (
+    AccountSnapshot,
+    CurrencyConversionRate,
+    MarketSnapshot,
+    SymbolSpecification,
+)
 from fx_platform.domain.strategy import SignalCandidate
 
 NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
@@ -54,6 +59,7 @@ def make_account(
     equity: Decimal = Decimal(10000),
     daily_realized_pnl: Decimal = Decimal(0),
     open_position_count: int = 0,
+    currency: str = "USD",
 ) -> AccountSnapshot:
     """Build valid point-in-time risk state."""
     return AccountSnapshot(
@@ -63,6 +69,50 @@ def make_account(
         equity=equity,
         daily_realized_pnl=daily_realized_pnl,
         open_position_count=open_position_count,
+        currency=currency,
+    )
+
+
+def make_specification(
+    *,
+    symbol: str = "EURUSD",
+    base_currency: str = "EUR",
+    quote_currency: str = "USD",
+    tick_size: Decimal = Decimal("0.00001"),
+    tick_value: Decimal = Decimal(1),
+    tick_value_currency: str = "USD",
+    max_spread_ticks: int | None = 50,
+) -> SymbolSpecification:
+    """Build reviewed-style symbol metadata for deterministic tests."""
+    return SymbolSpecification(
+        symbol=symbol,
+        base_currency=base_currency,
+        quote_currency=quote_currency,
+        contract_size=Decimal(100000),
+        tick_size=tick_size,
+        tick_value=tick_value,
+        tick_value_currency=tick_value_currency,
+        volume_min=Decimal("0.01"),
+        volume_max=Decimal("0.10"),
+        volume_step=Decimal("0.01"),
+        price_digits=5 if tick_size == Decimal("0.00001") else 3,
+        max_spread_ticks=max_spread_ticks,
+    )
+
+
+def make_conversion_rate(
+    *,
+    source_currency: str = "JPY",
+    target_currency: str = "USD",
+    rate: Decimal = Decimal("0.006666666666666666666666666667"),
+    observed_at: datetime = NOW,
+) -> CurrencyConversionRate:
+    """Build an explicit directed currency conversion test input."""
+    return CurrencyConversionRate(
+        source_currency=source_currency,
+        target_currency=target_currency,
+        rate=rate,
+        observed_at=observed_at,
     )
 
 

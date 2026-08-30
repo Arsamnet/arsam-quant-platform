@@ -1,6 +1,6 @@
 # MetaTrader 5 Boundary
 
-This directory intentionally contains no Expert Advisor order implementation. Version 0.1.0 is
+This directory intentionally contains no Expert Advisor order implementation. Version 0.2.0 is
 paper-only and no MQL5 compilation is claimed.
 
 A future EA will poll/exchange the versioned localhost contract documented in

@@ -7,6 +7,8 @@ root `AGENTS.md` before modifying this subsystem.
 - Any unavailable, stale, malformed, inconsistent, or unknown required state fails closed.
 - Never construct an execution intent from a rejected risk decision.
 - Use `Decimal` for prices, volume, balances, P/L, and risk calculations. Use aware UTC datetimes.
+- Require a matching `SymbolSpecification`, symbol-aware spread policy, and explicit fresh directed
+  conversion when tick-value and account currencies differ; missing required metadata fails closed.
 - Preserve or strengthen safety-rule behavior. A backwards-incompatible relaxation needs an ADR,
   explicit review, regression tests, and migration guidance.
 - Add example-based and property-based tests for limits, boundary values, stale data, daily loss,

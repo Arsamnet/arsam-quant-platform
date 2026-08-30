@@ -1,5 +1,6 @@
 """Value-object invariants at financial and temporal boundaries."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
@@ -10,10 +11,18 @@ from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
 from fx_platform.domain.common import TradeSide, TradingMode, require_utc
 from fx_platform.domain.economic import EconomicEvent, EventImportance
 from fx_platform.domain.execution import ExecutionIntent, ExecutionResult, ExecutionStatus
-from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
+from fx_platform.domain.market import AccountSnapshot, CurrencyConversionRate, MarketSnapshot
 from fx_platform.domain.risk import RiskDecision, RiskRejection
 from fx_platform.domain.strategy import SignalCandidate, StrategyDecision
-from tests.helpers import ASSESSMENT_ID, MARKET_ID, NOW, SIGNAL_ID, make_account, make_market
+from tests.helpers import (
+    ASSESSMENT_ID,
+    MARKET_ID,
+    NOW,
+    SIGNAL_ID,
+    make_account,
+    make_market,
+    make_specification,
+)
 
 
 def test_market_snapshot_exposes_exact_spread_and_midpoint() -> None:
@@ -21,6 +30,53 @@ def test_market_snapshot_exposes_exact_spread_and_midpoint() -> None:
 
     assert market.spread == Decimal("0.0002")
     assert market.mid_price == Decimal("1.1001")
+
+
+def test_symbol_specification_exposes_tick_spread_and_volume_grid() -> None:
+    specification = make_specification()
+
+    assert specification.maximum_spread == Decimal("0.00050")
+    assert specification.accepts_volume(Decimal("0.01"))
+    assert specification.accepts_volume(Decimal("0.10"))
+    assert not specification.accepts_volume(Decimal("0.015"))
+    assert not specification.accepts_volume(Decimal("0.11"))
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"symbol": "eurusd"},
+        {"contract_size": Decimal(0)},
+        {"volume_min": Decimal("0.11")},
+        {"price_digits": -1},
+        {"max_spread_ticks": -1},
+    ],
+)
+def test_symbol_specification_rejects_invalid_metadata(changes: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        replace(make_specification(), **changes)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"source_currency": "jpy"},
+        {"target_currency": "JPY"},
+        {"rate": Decimal(0)},
+        {"observed_at": NOW.replace(tzinfo=None)},
+    ],
+)
+def test_conversion_rate_rejects_invalid_state(changes: dict[str, object]) -> None:
+    values: dict[str, object] = {
+        "source_currency": "JPY",
+        "target_currency": "USD",
+        "rate": Decimal("0.0067"),
+        "observed_at": NOW,
+    }
+    values.update(changes)
+
+    with pytest.raises(ValueError):
+        CurrencyConversionRate(**values)
 
 
 @pytest.mark.parametrize(
@@ -196,6 +252,7 @@ def test_risk_decision_approval_and_reason_invariants() -> None:
             reasons=(RiskRejection.UNKNOWN_SYMBOL,),
             calculated_risk_amount=Decimal(1),
             maximum_risk_amount=Decimal(100),
+            maximum_daily_loss_amount=Decimal(200),
         )
 
 

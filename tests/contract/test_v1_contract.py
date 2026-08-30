@@ -77,6 +77,22 @@ async def test_hmac_enabled_contract_rejects_missing_or_modified_signature() -> 
                 "x-fx-signature": f"sha256={digest}",
             },
         )
+        malformed = await client.post(
+            "/v1/decision",
+            content=body,
+            headers={
+                "content-type": "application/json",
+                "x-fx-signature": "sha256=not-a-valid-digest",
+            },
+        )
+        incorrect = await client.post(
+            "/v1/decision",
+            content=body,
+            headers={
+                "content-type": "application/json",
+                "x-fx-signature": f"sha256={'0' * 64}",
+            },
+        )
         accepted = await client.post(
             "/v1/decision",
             content=body,
@@ -88,7 +104,51 @@ async def test_hmac_enabled_contract_rejects_missing_or_modified_signature() -> 
 
     assert missing.status_code == 401
     assert modified.status_code == 401
+    assert malformed.status_code == 401
+    assert incorrect.status_code == 401
     assert accepted.status_code == 200
+    assert len(executor.executed_intents) == 1
+
+
+async def test_replay_protection_remains_independent_when_hmac_is_enabled() -> None:
+    secret = "contract-test-secret"
+    service, executor, _ = _service()
+    app = create_app(
+        settings=Settings(
+            _env_file=None,
+            node_id="paper-node",
+            hmac_secret=SecretStr(secret),
+        ),
+        service=service,
+    )
+    first_payload = _payload()
+    replay_payload = dict(first_payload)
+    replay_payload["request_id"] = str(uuid4())
+
+    def signed_body(payload: dict[str, object]) -> tuple[bytes, dict[str, str]]:
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        digest = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        return body, {
+            "content-type": "application/json",
+            "x-fx-signature": f"sha256={digest}",
+        }
+
+    first_body, first_headers = signed_body(first_payload)
+    replay_body, replay_headers = signed_body(replay_payload)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first = await client.post(
+            "/v1/decision",
+            content=first_body,
+            headers=first_headers,
+        )
+        replay = await client.post(
+            "/v1/decision",
+            content=replay_body,
+            headers=replay_headers,
+        )
+
+    assert first.json()["status"] == "paper_executed"
+    assert replay.json()["status"] == "duplicate"
     assert len(executor.executed_intents) == 1
 
 

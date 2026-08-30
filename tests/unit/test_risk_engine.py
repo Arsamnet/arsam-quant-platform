@@ -15,11 +15,14 @@ from tests.helpers import (
     NOW,
     make_account,
     make_assessment,
+    make_conversion_rate,
     make_market,
     make_signal,
+    make_specification,
 )
 
 RISK_ID = UUID("50000000-0000-4000-8000-000000000005")
+_DEFAULT_SPECIFICATION = object()
 
 
 def _engine(**changes: object) -> RiskEngine:
@@ -38,6 +41,8 @@ def _evaluate(
     assessment: object | None = None,
     events: tuple[EconomicEvent, ...] = (),
     calendar_available: bool = False,
+    specification: object | None = _DEFAULT_SPECIFICATION,
+    conversion_rates: tuple[object, ...] = (),
 ):
     return (engine or _engine()).evaluate(
         risk_decision_id=RISK_ID,
@@ -49,6 +54,10 @@ def _evaluate(
         ai_assessment=assessment or make_assessment(),
         economic_events=events,
         calendar_available=calendar_available,
+        symbol_specification=(
+            make_specification() if specification is _DEFAULT_SPECIFICATION else specification
+        ),
+        conversion_rates=conversion_rates,
     )
 
 
@@ -59,18 +68,33 @@ def test_safe_paper_candidate_is_approved_with_exact_monetary_risk() -> None:
     assert decision.reasons == ()
     assert decision.calculated_risk_amount == Decimal(1)
     assert decision.maximum_risk_amount == Decimal(100)
+    assert decision.maximum_daily_loss_amount == Decimal(200)
 
 
-def test_non_paper_mode_and_unknown_symbol_are_rejected() -> None:
+def test_non_paper_mode_is_rejected() -> None:
     decision = _evaluate(
         trading_mode=TradingMode.LIVE,
-        market=make_market(symbol="GBPUSD"),
-        signal=make_signal(symbol="GBPUSD"),
     )
 
     assert not decision.approved
     assert RiskRejection.NON_PAPER_MODE in decision.reasons
+
+
+def test_risk_engine_independently_rejects_unknown_symbol() -> None:
+    decision = _evaluate(
+        market=make_market(symbol="XAUUSD"),
+        signal=make_signal(symbol="XAUUSD"),
+        specification=None,
+    )
+
     assert RiskRejection.UNKNOWN_SYMBOL in decision.reasons
+
+
+def test_allowed_symbol_without_specification_fails_closed() -> None:
+    decision = _evaluate(specification=None)
+
+    assert RiskRejection.SYMBOL_SPECIFICATION_UNAVAILABLE in decision.reasons
+    assert decision.calculated_risk_amount is None
 
 
 def test_mismatched_market_snapshot_is_rejected() -> None:
@@ -149,6 +173,52 @@ def test_position_and_daily_loss_limits_are_inclusive() -> None:
 
     assert RiskRejection.POSITION_LIMIT_EXCEEDED in decision.reasons
     assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED in decision.reasons
+
+
+def test_daily_loss_boundary_uses_relative_limit_and_optional_hard_cap() -> None:
+    just_below = _evaluate(account=make_account(daily_realized_pnl=Decimal("-199.99")))
+    exactly_at = _evaluate(account=make_account(daily_realized_pnl=Decimal(-200)))
+    beyond = _evaluate(account=make_account(daily_realized_pnl=Decimal("-200.01")))
+
+    assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED not in just_below.reasons
+    assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED in exactly_at.reasons
+    assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED in beyond.reasons
+    assert exactly_at.maximum_daily_loss_amount == Decimal(200)
+
+
+@given(
+    balance=st.decimals(
+        min_value=Decimal(100),
+        max_value=Decimal(1000000),
+        allow_nan=False,
+        allow_infinity=False,
+        places=2,
+    )
+)
+def test_property_relative_daily_loss_scales_with_balance(balance: Decimal) -> None:
+    engine = _engine(max_daily_loss_absolute_cap=None)
+    limit = balance * Decimal("0.02")
+
+    below = _evaluate(
+        engine,
+        account=make_account(
+            balance=balance,
+            equity=balance,
+            daily_realized_pnl=-(limit - Decimal("0.01")),
+        ),
+    )
+    at_limit = _evaluate(
+        engine,
+        account=make_account(
+            balance=balance,
+            equity=balance,
+            daily_realized_pnl=-limit,
+        ),
+    )
+
+    assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED not in below.reasons
+    assert RiskRejection.DAILY_LOSS_LIMIT_EXCEEDED in at_limit.reasons
+    assert at_limit.maximum_daily_loss_amount == limit
 
 
 def test_unavailable_or_invalid_ai_always_rejects() -> None:
@@ -230,6 +300,50 @@ def test_trade_risk_over_account_budget_is_rejected() -> None:
     assert RiskRejection.TRADE_RISK_LIMIT_EXCEEDED in decision.reasons
 
 
+def test_missing_spread_policy_fails_closed() -> None:
+    decision = _evaluate(specification=make_specification(max_spread_ticks=None))
+
+    assert RiskRejection.SPREAD_POLICY_UNAVAILABLE in decision.reasons
+
+
+def test_symbol_spread_limit_is_interpreted_in_that_symbols_ticks() -> None:
+    specification = make_specification(
+        symbol="USDJPY",
+        base_currency="USD",
+        quote_currency="JPY",
+        tick_size=Decimal("0.001"),
+        tick_value=Decimal(100),
+        tick_value_currency="JPY",
+    )
+    engine = _engine(allowed_symbols=frozenset({"USDJPY"}))
+
+    accepted = _evaluate(
+        engine,
+        market=make_market(symbol="USDJPY", bid=Decimal(150), ask=Decimal("150.050")),
+        signal=make_signal(symbol="USDJPY"),
+        specification=specification,
+        conversion_rates=(make_conversion_rate(),),
+    )
+    rejected = _evaluate(
+        engine,
+        market=make_market(symbol="USDJPY", bid=Decimal(150), ask=Decimal("150.051")),
+        signal=make_signal(symbol="USDJPY"),
+        specification=specification,
+        conversion_rates=(make_conversion_rate(),),
+    )
+
+    assert RiskRejection.SPREAD_TOO_WIDE not in accepted.reasons
+    assert RiskRejection.SPREAD_TOO_WIDE in rejected.reasons
+
+
+def test_symbol_volume_grid_is_enforced() -> None:
+    below = _evaluate(signal=make_signal(volume=Decimal("0.001")))
+    off_step = _evaluate(signal=make_signal(volume=Decimal("0.015")))
+
+    assert RiskRejection.VOLUME_BELOW_MINIMUM in below.reasons
+    assert RiskRejection.VOLUME_STEP_MISMATCH in off_step.reasons
+
+
 @given(
     volume=st.decimals(
         min_value=Decimal("0.1001"),
@@ -268,6 +382,14 @@ def test_risk_limit_configuration_rejects_unsafe_values() -> None:
         {"allowed_symbols": frozenset()},
         {"allowed_symbols": frozenset({"eurusd"})},
         {"allowed_symbols": frozenset({"EURUSD"}), "max_volume": Decimal(0)},
+        {
+            "allowed_symbols": frozenset({"EURUSD"}),
+            "max_daily_loss_fraction": Decimal(0),
+        },
+        {
+            "allowed_symbols": frozenset({"EURUSD"}),
+            "max_daily_loss_absolute_cap": Decimal(0),
+        },
         {"allowed_symbols": frozenset({"EURUSD"}), "max_open_positions": 0},
         {
             "allowed_symbols": frozenset({"EURUSD"}),

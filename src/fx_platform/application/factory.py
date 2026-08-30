@@ -6,6 +6,7 @@ from fx_platform.adapters.ai import NullAiAdvisor
 from fx_platform.adapters.clock import SystemClock
 from fx_platform.adapters.economic import NullEconomicCalendarProvider
 from fx_platform.adapters.execution import FakeExecutionAdapter
+from fx_platform.adapters.market import bootstrap_symbol_specifications
 from fx_platform.adapters.persistence import InMemoryAuditRepository
 from fx_platform.application.service import DecisionService
 from fx_platform.config import AiMode, Settings
@@ -36,9 +37,9 @@ def build_runtime(settings: Settings) -> Runtime:
             allowed_symbols=settings.allowed_symbols,
             max_volume=settings.max_volume,
             max_open_positions=settings.max_open_positions,
-            max_daily_loss=settings.max_daily_loss,
+            max_daily_loss_fraction=settings.max_daily_loss_fraction,
+            max_daily_loss_absolute_cap=settings.max_daily_loss_absolute_cap,
             max_trade_risk_fraction=settings.max_trade_risk_fraction,
-            max_spread=settings.max_spread,
             ai_required=settings.ai_required,
             economic_calendar_required=settings.economic_calendar_required,
         )
@@ -48,6 +49,7 @@ def build_runtime(settings: Settings) -> Runtime:
         trading_mode=settings.trading_mode,
         clock=clock,
         strategy=PreviousCloseMomentumStrategy(),
+        symbol_specifications=bootstrap_symbol_specifications(settings.allowed_symbols),
         ai_advisor=NullAiAdvisor(),
         risk_engine=risk_engine,
         calendar=NullEconomicCalendarProvider(),

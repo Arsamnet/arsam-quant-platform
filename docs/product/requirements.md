@@ -20,4 +20,4 @@ isolated trading nodes. Performance-sensitive tick handling must never block on 
 
 Profit claims, strategy optimization, live trading, demo `OrderSend`, billing, licensing,
 multi-tenancy, Redis, paid market/news integrations, and comprehensive monitoring are not part of
-version 0.1.0.
+version 0.2.0.

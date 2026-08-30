@@ -16,7 +16,11 @@ from pydantic import (
 )
 
 from fx_platform.application.models import DecisionCommand, DecisionOutcome
-from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
+from fx_platform.domain.market import (
+    AccountSnapshot,
+    CurrencyConversionRate,
+    MarketSnapshot,
+)
 
 
 def _parse_exact_decimal(value: object) -> Decimal:
@@ -84,6 +88,7 @@ class AccountSnapshotRequest(_ContractModel):
     equity: ExactDecimal
     daily_realized_pnl: ExactDecimal
     open_position_count: int = Field(ge=0)
+    currency: str = Field(default="USD", pattern=r"^[A-Z]{3}$")
 
     @field_validator("observed_at")
     @classmethod
@@ -109,6 +114,40 @@ class AccountSnapshotRequest(_ContractModel):
             equity=self.equity,
             daily_realized_pnl=self.daily_realized_pnl,
             open_position_count=self.open_position_count,
+            currency=self.currency,
+        )
+
+
+class CurrencyConversionRateRequest(_ContractModel):
+    """Directed point-in-time rate supplied explicitly by the local node."""
+
+    source_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    target_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    rate: ExactDecimal
+    observed_at: AwareDatetime
+
+    @field_validator("observed_at")
+    @classmethod
+    def normalize_timestamp(cls, value: datetime) -> datetime:
+        """Normalize an aware conversion timestamp to UTC."""
+        return value.astimezone(UTC)
+
+    @model_validator(mode="after")
+    def validate_rate(self) -> Self:
+        """Reject non-positive or identity conversions at the boundary."""
+        if self.rate <= Decimal(0):
+            raise ValueError("conversion rate must be greater than zero")
+        if self.source_currency == self.target_currency:
+            raise ValueError("conversion currencies must be different")
+        return self
+
+    def to_domain(self) -> CurrencyConversionRate:
+        """Convert the validated wire value to an immutable domain input."""
+        return CurrencyConversionRate(
+            source_currency=self.source_currency,
+            target_currency=self.target_currency,
+            rate=self.rate,
+            observed_at=self.observed_at,
         )
 
 
@@ -122,6 +161,7 @@ class DecisionRequest(_ContractModel):
     node_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     market: MarketSnapshotRequest
     account: AccountSnapshotRequest
+    conversion_rates: tuple[CurrencyConversionRateRequest, ...] = ()
 
     @field_validator("timestamp")
     @classmethod
@@ -139,6 +179,7 @@ class DecisionRequest(_ContractModel):
             node_id=self.node_id,
             market=self.market.to_domain(),
             account=self.account.to_domain(),
+            conversion_rates=tuple(rate.to_domain() for rate in self.conversion_rates),
         )
 
 

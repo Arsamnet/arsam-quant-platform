@@ -8,8 +8,8 @@ from fx_platform.application.models import DecisionAuditRecord
 from fx_platform.domain.advisory import AiAssessment
 from fx_platform.domain.economic import EconomicEvent
 from fx_platform.domain.execution import ExecutionIntent, ExecutionResult
-from fx_platform.domain.market import MarketSnapshot
-from fx_platform.domain.strategy import SignalCandidate
+from fx_platform.domain.market import MarketSnapshot, SymbolSpecification
+from fx_platform.domain.strategy import SignalCandidate, StrategyDecision
 
 
 class Clock(Protocol):
@@ -17,6 +17,38 @@ class Clock(Protocol):
 
     def now(self) -> datetime:
         """Return the current aware UTC time."""
+        ...
+
+
+class StrategyEvaluator(Protocol):
+    """Deterministic strategy boundary that cannot authorize execution."""
+
+    @property
+    def name(self) -> str:
+        """Return stable strategy name metadata."""
+        ...
+
+    @property
+    def version(self) -> str:
+        """Return stable strategy version metadata."""
+        ...
+
+    def evaluate(
+        self,
+        market: MarketSnapshot,
+        *,
+        signal_id: UUID,
+        evaluated_at: datetime,
+    ) -> StrategyDecision:
+        """Return a candidate or an explicit no-signal decision."""
+        ...
+
+
+class SymbolSpecificationProvider(Protocol):
+    """Read-only boundary for broker-independent risk metadata."""
+
+    def get(self, symbol: str) -> SymbolSpecification | None:
+        """Return configured metadata or no value when the symbol is unknown."""
         ...
 
 

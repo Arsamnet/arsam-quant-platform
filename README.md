@@ -1,7 +1,7 @@
 # Arsam Quant Platform
 
 A production-oriented engineering foundation for a measurable, reproducible, risk-controlled,
-AI-assisted FX platform. Version **0.1.0** is a paper-only bootstrap: it contains no MT5 order code,
+AI-assisted FX platform. Version **0.2.0** is a paper-only bootstrap: it contains no MT5 order code,
 no broker connection, and no path that permits live trading.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
@@ -15,6 +15,8 @@ statistical edge.
 - The only executor is an in-memory paper fake with ID/nonce replay protection.
 - The API binds to loopback and rejects non-loopback configuration.
 - Financial inputs are decimal JSON strings and domain calculations use `Decimal`.
+- Unknown symbols stop before strategy/advisory work; risk repeats symbol validation independently.
+- Daily loss is account-relative with an optional hard cap; spread and tick risk are symbol-aware.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), and
 [docs/index.md](docs/index.md) before extending the system.
@@ -59,7 +61,9 @@ Check health at `http://127.0.0.1:8000/health`. OpenAPI is local at
 `POST /v1/decision` requires schema version `1.0`, UUIDs, a 16+ character nonce, matching configured
 node ID, and request/market/account timestamps no more than 30 seconds old. All prices, balances,
 P/L, and volumes on the wire are strings such as `"1.1002"`, never JSON numbers. The detailed
-contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md).
+contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md). Accounts
+default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
+an explicit fresh directed conversion rate.
 
 ## Quality commands
 

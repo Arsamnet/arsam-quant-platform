@@ -9,9 +9,11 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from fx_platform.adapters.market import StaticSymbolSpecificationProvider
 from fx_platform.api.main import create_app
 from fx_platform.config import Settings
-from tests.helpers import NOW
+from fx_platform.domain.risk import RiskEngine, RiskLimits
+from tests.helpers import NOW, make_specification
 from tests.unit.test_decision_service import _service
 
 pytestmark = pytest.mark.anyio
@@ -39,6 +41,7 @@ def _payload() -> dict[str, object]:
             "equity": "10000.00",
             "daily_realized_pnl": "0.00",
             "open_position_count": 0,
+            "currency": "USD",
         },
     }
 
@@ -59,7 +62,7 @@ async def test_health_reports_only_non_sensitive_safe_mode() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "trading_mode": "paper",
         "ai_mode": "disabled",
         "node_id": "paper-node",
@@ -90,8 +93,12 @@ async def test_unknown_symbol_is_a_risk_rejection_and_never_executes() -> None:
         response = await client.post("/v1/decision", json=payload)
 
     assert response.status_code == 200
-    assert response.json()["status"] == "risk_rejected"
-    assert "unknown_symbol" in response.json()["reasons"]
+    body = response.json()
+    assert body["status"] == "risk_rejected"
+    assert body["reasons"] == ["unknown_symbol"]
+    assert body["signal_id"] is None
+    assert body["risk_decision_id"] is None
+    assert body["execution_id"] is None
     assert executor.executed_intents == ()
 
 
@@ -154,3 +161,47 @@ async def test_decimal_strings_preserve_exact_values_to_execution() -> None:
         intent = executor.executed_intents[0]
         assert intent.entry_price == Decimal("1.1002")
         assert intent.volume == Decimal("0.01")
+
+
+async def test_usdjpy_request_uses_explicit_jpy_to_usd_conversion() -> None:
+    specification = make_specification(
+        symbol="USDJPY",
+        base_currency="USD",
+        quote_currency="JPY",
+        tick_size=Decimal("0.001"),
+        tick_value=Decimal(100),
+        tick_value_currency="JPY",
+    )
+    service, executor, _ = _service(
+        risk_engine=RiskEngine(RiskLimits(allowed_symbols=frozenset({"USDJPY"}))),
+        symbol_specifications=StaticSymbolSpecificationProvider((specification,)),
+    )
+    payload = _payload()
+    market = payload["market"]
+    assert isinstance(market, dict)
+    market.update(
+        {
+            "symbol": "USDJPY",
+            "bid": "150.000",
+            "ask": "150.010",
+            "previous_close": "149.900",
+        }
+    )
+    payload["conversion_rates"] = [
+        {
+            "source_currency": "JPY",
+            "target_currency": "USD",
+            "rate": "0.0067",
+            "observed_at": NOW.isoformat(),
+        }
+    ]
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=payload)
+
+    assert response.json()["status"] == "paper_executed"
+    assert len(executor.executed_intents) == 1

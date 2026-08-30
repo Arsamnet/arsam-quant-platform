@@ -8,6 +8,7 @@ from fx_platform.api.security import verify_signature
 
 def test_hmac_is_explicitly_optional_when_no_secret_is_configured() -> None:
     assert verify_signature(b"payload", None, None)
+    assert verify_signature(b"payload", None, "")
 
 
 def test_hmac_accepts_only_matching_sha256_signature() -> None:
@@ -19,3 +20,14 @@ def test_hmac_accepts_only_matching_sha256_signature() -> None:
     assert not verify_signature(body, None, secret)
     assert not verify_signature(body, digest, secret)
     assert not verify_signature(body + b" ", f"sha256={digest}", secret)
+
+
+def test_hmac_rejects_malformed_and_incorrect_digests() -> None:
+    body = b"exact raw bytes"
+    secret = "local-test-secret"
+
+    assert not verify_signature(body, "sha256=not-hex", secret)
+    assert not verify_signature(body, f"sha256={'z' * 64}", secret)
+    assert not verify_signature(body, f"sha256={'0' * 62}", secret)
+    assert not verify_signature(body, f"sha256={'0' * 64}", secret)
+    assert not verify_signature(body, f"sha256={'0' * 66}", secret)

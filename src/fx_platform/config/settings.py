@@ -44,9 +44,11 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     max_volume: Decimal = Decimal("0.10")
     max_open_positions: int = Field(default=3, ge=1)
-    max_daily_loss: Decimal = Decimal(200)
+    max_daily_loss_fraction: Decimal = Decimal("0.02")
+    max_daily_loss_absolute_cap: Decimal | None = Decimal(200)
     max_trade_risk_fraction: Decimal = Decimal("0.01")
-    max_spread: Decimal = Decimal("0.0005")
+    max_daily_loss: Decimal | None = Field(default=None, exclude=True)
+    max_spread: Decimal | None = Field(default=None, exclude=True)
     economic_calendar_required: bool = False
 
     @field_validator("bind_host")
@@ -89,14 +91,31 @@ class Settings(BaseSettings):
             or not self.openai_model
         ):
             raise ValueError("OpenAI mode requires FX_OPENAI_API_KEY and FX_OPENAI_MODEL")
+        if self.max_daily_loss is not None:
+            raise ValueError(
+                "FX_MAX_DAILY_LOSS is retired; configure FX_MAX_DAILY_LOSS_FRACTION and "
+                "FX_MAX_DAILY_LOSS_ABSOLUTE_CAP"
+            )
+        if self.max_spread is not None:
+            raise ValueError(
+                "FX_MAX_SPREAD is retired; spread limits are defined per symbol in ticks"
+            )
         for field_name, value in (
             ("max_volume", self.max_volume),
-            ("max_daily_loss", self.max_daily_loss),
+            ("max_daily_loss_fraction", self.max_daily_loss_fraction),
             ("max_trade_risk_fraction", self.max_trade_risk_fraction),
-            ("max_spread", self.max_spread),
         ):
             if not value.is_finite() or value <= Decimal(0):
                 raise ValueError(f"{field_name} must be a positive finite decimal")
-        if self.max_trade_risk_fraction > Decimal(1):
-            raise ValueError("max_trade_risk_fraction must not exceed one")
+        if self.max_daily_loss_absolute_cap is not None and (
+            not self.max_daily_loss_absolute_cap.is_finite()
+            or self.max_daily_loss_absolute_cap <= Decimal(0)
+        ):
+            raise ValueError("max_daily_loss_absolute_cap must be a positive finite decimal")
+        for field_name, fraction in (
+            ("max_daily_loss_fraction", self.max_daily_loss_fraction),
+            ("max_trade_risk_fraction", self.max_trade_risk_fraction),
+        ):
+            if fraction > Decimal(1):
+                raise ValueError(f"{field_name} must not exceed one")
         return self

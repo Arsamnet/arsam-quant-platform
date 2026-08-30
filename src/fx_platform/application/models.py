@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fx_platform.domain.common import require_utc
 from fx_platform.domain.execution import ExecutionStatus
-from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
+from fx_platform.domain.market import AccountSnapshot, CurrencyConversionRate, MarketSnapshot
 
 
 class DecisionOutcomeStatus(StrEnum):
@@ -39,6 +39,7 @@ class DecisionCommand:
     node_id: str
     market: MarketSnapshot
     account: AccountSnapshot
+    conversion_rates: tuple[CurrencyConversionRate, ...] = ()
 
     def __post_init__(self) -> None:
         require_utc(self.request_timestamp, "request_timestamp")

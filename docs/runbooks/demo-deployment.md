@@ -1,10 +1,11 @@
 # Demo Deployment Runbook
 
-Demo broker execution is **not implemented or authorized in 0.1.0**. This runbook is an approval
+Demo broker execution is **not implemented or authorized in 0.2.0**. This runbook is an approval
 gate, not deployment instructions.
 
-Before introducing `demo`: complete deterministic out-of-sample testing, broker contract metadata
-and currency conversion, durable PostgreSQL idempotency/recovery, independent MQL5 validation,
+Before introducing `demo`: complete deterministic out-of-sample testing, validate static symbol
+metadata and currency-risk calculations against broker contract data, add durable PostgreSQL
+idempotency/recovery, independent MQL5 validation,
 broker-side SL/TP, spread/staleness/position limits, reconciliation, kill switch, fault injection,
 Windows hardening, backups, incident drills, and actual MetaEditor compilation. Obtain explicit
 financial-risk and operational approval for limits.

@@ -56,9 +56,9 @@ def test_openai_mode_requires_environment_owned_credentials() -> None:
     "changes",
     [
         {"max_volume": Decimal(0)},
-        {"max_daily_loss": Decimal("NaN")},
+        {"max_daily_loss_fraction": Decimal("NaN")},
+        {"max_daily_loss_absolute_cap": Decimal(-1)},
         {"max_trade_risk_fraction": Decimal("1.1")},
-        {"max_spread": Decimal(-1)},
     ],
 )
 def test_invalid_risk_configuration_fails_startup(changes: dict[str, Decimal]) -> None:
@@ -71,3 +71,14 @@ def test_invalid_log_level_and_symbol_allowlist_fail_startup() -> None:
         _settings(log_level="verbose")
     with pytest.raises(ValidationError, match="uppercase"):
         _settings(allowed_symbols=frozenset({"eurusd"}))
+
+
+def test_runtime_rejects_allowed_symbols_without_reviewed_metadata() -> None:
+    with pytest.raises(ValueError, match="symbol specification"):
+        build_runtime(_settings(allowed_symbols=frozenset({"XAUUSD"})))
+
+
+@pytest.mark.parametrize("legacy_name", ["max_daily_loss", "max_spread"])
+def test_retired_absolute_risk_settings_fail_startup(legacy_name: str) -> None:
+    with pytest.raises(ValidationError, match="retired"):
+        _settings(**{legacy_name: Decimal(1)})

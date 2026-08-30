@@ -9,27 +9,48 @@ overridden by strategy or AI output.
 ## Bootstrap assumptions
 
 - Trading mode is paper only.
-- Supported symbols are configured explicitly.
-- One standard FX lot represents 100,000 base-currency units for the initial illustrative risk
-  calculation. Broker-specific contract metadata will replace this assumption before demo trading.
-- Per-trade monetary risk is `abs(entry_price - stop_loss) * volume * contract_size`.
+- Supported symbols and their reviewed static specifications are configured explicitly.
+- `SymbolSpecification` holds the symbol currencies, contract size, tick size/value semantics,
+  volume grid, price digits, and maximum spread in ticks without depending on MT5.
+- Per-trade stop exposure starts with
+  `abs(entry - stop) / tick_size * tick_value * volume` in the declared tick-value currency.
+- When the tick-value currency differs from the account currency, the caller must provide one fresh,
+  directed `CurrencyConversionRate`. Missing, duplicate, stale, or future conversion data rejects.
 - The account risk budget is `balance * max_risk_fraction`.
-- `daily_realized_pnl <= -max_daily_loss` blocks new trades.
+- The effective daily-loss limit is
+  `min(balance * max_daily_loss_fraction, optional_absolute_daily_loss_cap)`; reaching the boundary
+  blocks new trades.
 - Market and request age are evaluated against an injected aware UTC clock.
 - Unavailable or invalid AI always blocks. A configured AI-required policy also blocks disabled or
   abstaining assessments. With AI explicitly disabled and optional, deterministic strategies may
   operate without AI; an unexpected AI outage is never treated as disabled.
 
-These calculations use `Decimal`. They deliberately exclude currency conversion, pip-value
-variation, commissions, slippage, and portfolio correlation. Those omissions are safe only for the
-paper bootstrap because configured limits remain conservative and no broker order is possible.
+All financial inputs and calculations use `Decimal`. Bootstrap defaults are deliberately
+conservative engineering values, not production risk recommendations:
+
+- `max_daily_loss_fraction = 0.02`
+- `max_daily_loss_absolute_cap = 200` account-currency units
+- `max_trade_risk_fraction = 0.01`
+- `max_open_positions = 3`
+- static EURUSD/GBPUSD limits of 50 ticks (`0.00050`) and USDJPY 50 ticks (`0.050`)
+
+The tick values are reviewed paper fixtures, not broker-perfect P/L metadata. Commissions, slippage,
+swap, dynamic tick values, portfolio correlation, and broker-specific calculation modes remain
+excluded. Demo execution requires comparison against real MT5 symbol metadata and broker results.
 
 ## Fail-closed rule order
 
 The engine evaluates all available deterministic rules to produce an auditable set of rejection
 reasons. Missing required state is rejected before financial approval. Core checks cover trading
-mode, known symbol, stale data, spread, signal direction, stop loss, volume, position count, daily
-loss, AI policy, and per-trade risk.
+mode, an independent symbol allowlist, specification availability, stale data, symbol-aware spread,
+signal direction, stop loss, symbol/global volume bounds, position count, account-relative daily
+loss, AI policy, conversion availability, and per-trade risk. An absent spread policy or required
+currency conversion fails closed.
+
+The application rejects a symbol absent from the current node's specification provider before
+strategy, AI, calendar, risk, or execution calls. The Risk Engine still performs its own symbol
+allowlist/specification checks when invoked directly; the early check is not a substitute for the
+downstream control.
 
 An `ExecutionIntent` may be constructed only from an approved `RiskDecision` associated with the
 same signal. Application orchestration enforces this boundary and tests prove rejected decisions do
@@ -39,5 +60,5 @@ not invoke the execution adapter.
 
 Changing a limit default or weakening a rule requires explicit product/risk approval, an ADR or ADR
 amendment, property tests at the boundary, regression coverage, and documentation of operational
-migration. Broker metadata and account-currency conversion must be implemented before broker demo
-execution.
+migration. Static metadata and account-currency calculations must be validated against broker demo
+contract metadata and hand reconciliations before any broker execution is authorized.

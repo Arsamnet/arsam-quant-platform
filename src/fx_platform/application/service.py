@@ -16,11 +16,14 @@ from fx_platform.application.ports import (
     Clock,
     EconomicCalendarProvider,
     ExecutionAdapter,
+    StrategyEvaluator,
+    SymbolSpecificationProvider,
 )
 from fx_platform.domain.common import TradingMode
 from fx_platform.domain.execution import ExecutionIntent, ExecutionStatus
+from fx_platform.domain.market import SymbolSpecification
 from fx_platform.domain.risk import RiskEngine
-from fx_platform.domain.strategy import PreviousCloseMomentumStrategy, SignalCandidate
+from fx_platform.domain.strategy import SignalCandidate
 
 _ID_NAMESPACE = UUID("f344fe7f-5286-4ff9-a0aa-7217f58e172c")
 
@@ -38,7 +41,8 @@ class DecisionService:
         node_id: str,
         trading_mode: TradingMode,
         clock: Clock,
-        strategy: PreviousCloseMomentumStrategy,
+        strategy: StrategyEvaluator,
+        symbol_specifications: SymbolSpecificationProvider,
         ai_advisor: AiAdvisor,
         risk_engine: RiskEngine,
         calendar: EconomicCalendarProvider,
@@ -56,6 +60,7 @@ class DecisionService:
         self._trading_mode = trading_mode
         self._clock = clock
         self._strategy = strategy
+        self._symbol_specifications = symbol_specifications
         self._ai_advisor = ai_advisor
         self._risk_engine = risk_engine
         self._calendar = calendar
@@ -108,6 +113,19 @@ class DecisionService:
                 reasons=(age_reason,),
             )
 
+        symbol_specification = self._symbol_specifications.get(command.market.symbol)
+        if symbol_specification is None:
+            self._save_rejected_without_signal(command, now, "unknown_symbol")
+            return DecisionOutcome(
+                request_id=command.request_id,
+                status=DecisionOutcomeStatus.RISK_REJECTED,
+                signal_id=None,
+                risk_decision_id=None,
+                execution_id=None,
+                execution_status=None,
+                reasons=("unknown_symbol",),
+            )
+
         signal_id = _derived_id(command.request_id, "signal")
         strategy_decision = self._strategy.evaluate(
             command.market,
@@ -146,13 +164,19 @@ class DecisionService:
                 reasons=reasons,
             )
 
-        return self._evaluate_candidate(command, now, strategy_decision.candidate)
+        return self._evaluate_candidate(
+            command,
+            now,
+            strategy_decision.candidate,
+            symbol_specification,
+        )
 
     def _evaluate_candidate(
         self,
         command: DecisionCommand,
         now: datetime,
         signal: SignalCandidate,
+        symbol_specification: SymbolSpecification,
     ) -> DecisionOutcome:
         # Kept as a separate step so every external read finishes before intent persistence.
         assessment = self._ai_advisor.assess(
@@ -176,6 +200,8 @@ class DecisionService:
             ai_assessment=assessment,
             economic_events=calendar.events,
             calendar_available=calendar.available,
+            symbol_specification=symbol_specification,
+            conversion_rates=command.conversion_rates,
         )
         if not risk_decision.approved:
             reasons = tuple(reason.value for reason in risk_decision.reasons)

@@ -10,6 +10,7 @@ import pytest
 from fx_platform.adapters.ai import NullAiAdvisor
 from fx_platform.adapters.economic import NullEconomicCalendarProvider
 from fx_platform.adapters.execution import FakeExecutionAdapter
+from fx_platform.adapters.market import StaticSymbolSpecificationProvider
 from fx_platform.adapters.persistence import InMemoryAuditRepository
 from fx_platform.application.models import (
     AuditStage,
@@ -21,7 +22,14 @@ from fx_platform.domain.common import TradingMode
 from fx_platform.domain.execution import ExecutionStatus
 from fx_platform.domain.risk import RiskEngine, RiskLimits
 from fx_platform.domain.strategy import PreviousCloseMomentumStrategy
-from tests.helpers import NOW, REQUEST_ID, FixedClock, make_account, make_market
+from tests.helpers import (
+    NOW,
+    REQUEST_ID,
+    FixedClock,
+    make_account,
+    make_market,
+    make_specification,
+)
 
 
 @dataclass(slots=True)
@@ -40,6 +48,9 @@ def _command(
     node_id: str = "paper-node",
     previous_close: Decimal = Decimal("1.0990"),
     spread_ask: Decimal = Decimal("1.1002"),
+    symbol: str = "EURUSD",
+    daily_realized_pnl: Decimal = Decimal(0),
+    open_position_count: int = 0,
 ) -> DecisionCommand:
     return DecisionCommand(
         request_id=request_id,
@@ -47,8 +58,15 @@ def _command(
         nonce=nonce,
         schema_version="1.0",
         node_id=node_id,
-        market=make_market(ask=spread_ask, previous_close=previous_close),
-        account=make_account(),
+        market=make_market(
+            symbol=symbol,
+            ask=spread_ask,
+            previous_close=previous_close,
+        ),
+        account=make_account(
+            daily_realized_pnl=daily_realized_pnl,
+            open_position_count=open_position_count,
+        ),
     )
 
 
@@ -57,6 +75,10 @@ def _service(
     clock=None,
     repository=None,
     advisor=None,
+    strategy=None,
+    risk_engine=None,
+    calendar=None,
+    symbol_specifications=None,
     economic_calendar_required: bool = False,
 ):
     active_clock = clock or FixedClock()
@@ -66,15 +88,18 @@ def _service(
         node_id="paper-node",
         trading_mode=TradingMode.PAPER,
         clock=active_clock,
-        strategy=PreviousCloseMomentumStrategy(),
+        strategy=strategy or PreviousCloseMomentumStrategy(),
+        symbol_specifications=symbol_specifications
+        or StaticSymbolSpecificationProvider((make_specification(),)),
         ai_advisor=advisor or NullAiAdvisor(),
-        risk_engine=RiskEngine(
+        risk_engine=risk_engine
+        or RiskEngine(
             RiskLimits(
                 allowed_symbols=frozenset({"EURUSD"}),
                 economic_calendar_required=economic_calendar_required,
             )
         ),
-        calendar=NullEconomicCalendarProvider(),
+        calendar=calendar or NullEconomicCalendarProvider(),
         executor=executor,
         audit_repository=audit_repository,
     )
@@ -105,6 +130,26 @@ def test_risk_rejection_never_reaches_execution_adapter() -> None:
     assert "spread_too_wide" in outcome.reasons
     assert executor.executed_intents == ()
     assert repository.get(REQUEST_ID).stage is AuditStage.REJECTED
+
+
+def test_combined_risk_failures_are_reported_without_an_execution_id() -> None:
+    service, executor, _ = _service()
+
+    outcome = service.decide(
+        _command(
+            spread_ask=Decimal("1.1010"),
+            daily_realized_pnl=Decimal(-200),
+            open_position_count=3,
+        )
+    )
+
+    assert {
+        "spread_too_wide",
+        "daily_loss_limit_exceeded",
+        "position_limit_exceeded",
+    }.issubset(outcome.reasons)
+    assert outcome.execution_id is None
+    assert executor.executed_intents == ()
 
 
 def test_no_signal_is_audited_without_ai_risk_or_execution() -> None:
@@ -143,6 +188,9 @@ def test_wrong_node_and_stale_or_future_requests_are_rejected_before_strategy() 
         outcome = service.decide(command)
         assert outcome.status is DecisionOutcomeStatus.RISK_REJECTED
         assert outcome.reasons == (reason,)
+        assert outcome.signal_id is None
+        assert outcome.risk_decision_id is None
+        assert outcome.execution_id is None
         assert executor.executed_intents == ()
         assert repository.get(command.request_id).risk_reasons == (reason,)
 
@@ -198,6 +246,67 @@ class _ExplodingAdvisor:
         raise RuntimeError("unexpected advisor failure")
 
 
+class _NeverCalledStrategy:
+    name = "never_called"
+    version = "1.0.0"
+
+    def evaluate(self, *args, **kwargs):
+        del args, kwargs
+        raise AssertionError("strategy must not be called")
+
+
+class _NeverCalledCalendar:
+    def events_for(self, **kwargs):
+        del kwargs
+        raise AssertionError("calendar must not be called")
+
+
+class _NeverCalledRiskEngine:
+    def evaluate(self, **kwargs):
+        del kwargs
+        raise AssertionError("risk engine must not be called")
+
+
+def test_unknown_symbol_is_rejected_before_strategy_and_all_downstream_calls() -> None:
+    service, executor, repository = _service(
+        strategy=_NeverCalledStrategy(),
+        advisor=_ExplodingAdvisor(),
+        calendar=_NeverCalledCalendar(),
+        risk_engine=_NeverCalledRiskEngine(),
+    )
+
+    outcome = service.decide(_command(symbol="XAUUSD"))
+
+    assert outcome.status is DecisionOutcomeStatus.RISK_REJECTED
+    assert outcome.reasons == ("unknown_symbol",)
+    assert outcome.signal_id is None
+    assert outcome.risk_decision_id is None
+    assert outcome.execution_id is None
+    assert executor.executed_intents == ()
+    assert repository.get(REQUEST_ID).ai_status == "not_requested"
+
+
+def test_missing_required_currency_conversion_never_creates_execution_intent() -> None:
+    usd_jpy = make_specification(
+        symbol="USDJPY",
+        base_currency="USD",
+        quote_currency="JPY",
+        tick_size=Decimal("0.001"),
+        tick_value=Decimal(100),
+        tick_value_currency="JPY",
+    )
+    service, executor, _ = _service(
+        risk_engine=RiskEngine(RiskLimits(allowed_symbols=frozenset({"USDJPY"}))),
+        symbol_specifications=StaticSymbolSpecificationProvider((usd_jpy,)),
+    )
+
+    outcome = service.decide(_command(symbol="USDJPY"))
+
+    assert outcome.reasons == ("conversion_rate_unavailable",)
+    assert outcome.execution_id is None
+    assert executor.executed_intents == ()
+
+
 def test_unexpected_advisor_exception_never_becomes_approval() -> None:
     service, executor, _ = _service(advisor=_ExplodingAdvisor())
 
@@ -213,6 +322,7 @@ def test_service_constructor_rejects_live_mode_and_empty_node() -> None:
     common = {
         "clock": clock,
         "strategy": PreviousCloseMomentumStrategy(),
+        "symbol_specifications": StaticSymbolSpecificationProvider((make_specification(),)),
         "ai_advisor": NullAiAdvisor(),
         "risk_engine": RiskEngine(RiskLimits(allowed_symbols=frozenset({"EURUSD"}))),
         "calendar": NullEconomicCalendarProvider(),
