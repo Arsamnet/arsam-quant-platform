@@ -1,0 +1,104 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "arsam-quant-platform"
+version = "0.1.0"
+description = "Risk-controlled, AI-assisted FX trading platform foundation"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+license = { text = "Proprietary" }
+authors = [{ name = "Arsam Quant Platform Engineering" }]
+dependencies = [
+  "alembic>=1.16,<2",
+  "fastapi>=0.116,<1",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "sqlalchemy>=2.0,<3",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+  "hypothesis>=6.135,<7",
+  "mypy>=1.17,<2",
+  "pip-audit>=2.9,<3",
+  "pre-commit>=4.2,<5",
+  "pytest>=9.0.3,<10",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+]
+
+[project.scripts]
+fx-platform = "fx_platform.api.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fx_platform"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "A", "ARG", "ASYNC", "B", "BLE", "C4", "DTZ", "E", "ERA", "F", "FA",
+  "FBT", "FLY", "FURB", "I", "ICN", "INP", "LOG", "N", "PERF", "PIE",
+  "PL", "PTH", "PYI", "RET", "RSE", "RUF", "S", "SIM", "SLF", "T10",
+  "T20", "TC", "TRY", "UP", "W",
+]
+ignore = [
+  "PLR0913", # Explicit dependency injection can require several named inputs.
+  "TRY003",  # Inline invariant messages are clearer than one exception class per validation.
+  "TRY004",  # Pydantic converts both ValueError and TypeError; domain validators use ValueError.
+  "TC003",   # Runtime annotations intentionally keep simple stdlib types importable.
+  "FBT001",  # Named protocol/domain arguments make boolean policy state explicit.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "S101",   # Assertions are the test contract.
+  "S104",   # Tests verify rejection of unsafe bind addresses.
+  "S105",   # Test-only HMAC placeholders and secret-field rejection fixtures.
+  "PLR2004",
+]
+"migrations/**/*.py" = ["INP001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fx_platform"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["src"]
+packages = ["fx_platform"]
+exclude = ["migrations"]
+
+[tool.pytest.ini_options]
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "--cov=fx_platform",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-report=xml",
+  "--cov-fail-under=85",
+]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["fx_platform"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]

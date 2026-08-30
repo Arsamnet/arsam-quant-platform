@@ -1,0 +1,4 @@
+# Local Agent Overrides
+
+Temporary developer-specific instructions may be placed in an untracked `AGENTS.override.md`.
+Local overrides must not weaken safety, security, or paper-only trading invariants.

@@ -1,0 +1,35 @@
+# Documentation Index
+
+`docs/` is the project knowledge base; code and behavior changes update their source document in the
+same change.
+
+## Product
+
+- [Vision](product/vision.md)
+- [Requirements](product/requirements.md)
+- [Roadmap](product/roadmap.md)
+
+## Architecture and domain
+
+- [System context](architecture/system-context.md)
+- [Trading node](architecture/trading-node.md)
+- [Future SaaS](architecture/future-saas.md)
+- [ADRs](architecture/decisions/README.md)
+- [Glossary](domain/glossary.md)
+- [Risk model](domain/risk-model.md)
+
+## Assurance
+
+- [AI policy](ai/ai-policy.md) and [prompt security](ai/prompt-security.md)
+- [Backtesting methodology](backtesting/methodology.md)
+- [Testing strategy](testing/strategy.md)
+- [Threat model](security/threat-model.md)
+- [Observability](operations/observability.md) and [release process](operations/release-process.md)
+
+## Runbooks
+
+- [Local development](runbooks/local-development.md)
+- [Windows Server hardening](runbooks/windows-server-hardening.md)
+- [Demo deployment](runbooks/demo-deployment.md)
+- [Backup and restore](runbooks/backup-restore.md)
+- [Incident response](runbooks/incident-response.md)
