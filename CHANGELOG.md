@@ -5,6 +5,35 @@ uses Semantic Versioning during pre-production.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-31
+
+### Added
+
+- Deterministic event-driven backtest engine reusing the existing strategy, null advisory/calendar,
+  fail-closed Risk Engine, paper intent, and symbol specification boundaries.
+- Strict immutable historical Bid OHLC plus fixed-spread CSV contract, UTC validation, canonical
+  dataset metadata/checksum, point-in-time conversion replay, and chronological three-way splits.
+- Monotonic historical clock, next-bar-open simulated broker, explicit Bid/Ask fills, deterministic
+  commission/slippage, conservative SL/TP ambiguity, portfolio accounting, and immutable trade ledger.
+- Canonical run/configuration fingerprints and JSON report with deterministic IDs, realized-balance
+  metrics, open-position equity, audit events, and a synthetic EURUSD golden fixture.
+- Local `fx-backtest` CLI plus comprehensive unit, integration, regression, and no-future-data tests.
+- ADRs 0011–0015 and complete backtesting data, execution, methodology, and reproducibility docs.
+
+### Changed
+
+- Prepare package and API health version 0.3.0 without creating a tag or release.
+- Share directed currency conversion validation between risk and simulated portfolio accounting.
+- Extend constrained structured-log trace fields for backtest run/dataset/risk/trade identities.
+
+### Security
+
+- Backtests perform no network, broker, MT5, PostgreSQL, external-AI, or non-paper execution.
+- Reject malformed, non-finite, duplicate, reverse-ordered, naive-time, or schema-invalid historical
+  data and fail closed when symbol, spread, or directed conversion metadata is insufficient.
+
+## [0.2.0] - 2026-08-30
+
 ### Added
 
 - Broker-independent `SymbolSpecification` and a static paper metadata provider for EURUSD,
@@ -16,7 +45,7 @@ uses Semantic Versioning during pre-production.
 
 ### Changed
 
-- Prepare package version 0.2.0 while leaving release notes under Unreleased.
+- Prepare package version 0.2.0.
 - Reject unknown symbols before strategy, AI, calendar, risk, or execution while preserving the
   Risk Engine's independent allowlist defense.
 - Replace the absolute-only daily loss limit with a balance fraction and optional absolute cap.

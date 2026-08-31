@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arsam-quant-platform"
-version = "0.2.0"
+version = "0.3.0"
 description = "Risk-controlled, AI-assisted FX trading platform foundation"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -34,6 +34,7 @@ dev = [
 
 [project.scripts]
 fx-platform = "fx_platform.api.main:run"
+fx-backtest = "fx_platform.backtesting.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fx_platform"]

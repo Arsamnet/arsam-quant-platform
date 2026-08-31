@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Version 0.1.x receives security fixes during bootstrap. It is paper-only and must not be used for
+Version 0.3.x receives security fixes during bootstrap. It is paper-only and must not be used for
 real-money or broker-demo execution.
 
 ## Reporting
@@ -22,6 +22,8 @@ Preserve logs and timestamps without copying secrets.
 - Rotate API/HMAC keys, use environment/secret-store injection, and redact authorization data.
 - Treat financial news and AI output as untrusted data. Neither can override policy or execute.
 - Run locked dependency installation and `pip-audit`; review lock updates rather than auto-merging.
+- Treat historical CSV as untrusted input: validate strict schema/UTC/order/finite decimals, never
+  deserialize pickle, and never let a backtest access a broker, network, external AI, or live mode.
 
 See [threat-model.md](docs/security/threat-model.md),
 [windows-server-hardening.md](docs/runbooks/windows-server-hardening.md), and

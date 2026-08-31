@@ -8,6 +8,9 @@
 - No live/demo broker order path, remote AI call, paid news dependency, or multi-tenant billing
 - Exact decimal financial values, aware UTC time, replay protection, structured non-secret logs
 - PostgreSQL/Alembic foundation without requiring PostgreSQL for unit tests
+- Deterministic event-driven backtesting with no future data, wall time, network, broker, or database
+- Explicit Bid/Ask, next-open timing, transaction costs, conservative SL/TP ambiguity, and ledger
+- Canonical datasets/configuration fingerprints/results plus chronological non-overlapping splits
 - Automated formatting, lint, strict typing, behavior tests, coverage, pre-commit, and CI
 
 ## Quality attributes
@@ -19,5 +22,5 @@ isolated trading nodes. Performance-sensitive tick handling must never block on 
 ## Explicit non-goals
 
 Profit claims, strategy optimization, live trading, demo `OrderSend`, billing, licensing,
-multi-tenancy, Redis, paid market/news integrations, and comprehensive monitoring are not part of
-version 0.2.0.
+multi-tenancy, Redis, paid market/news integrations, optimization, tick replay, broker-calibrated
+fills, and comprehensive monitoring are not part of version 0.3.0.

@@ -13,6 +13,11 @@ the original rationale. File names use `ADR-NNNN-short-title.md`.
 - [ADR-0008: Broker-independent symbol specifications](ADR-0008-symbol-specification.md)
 - [ADR-0009: Explicit account-currency risk calculation](ADR-0009-account-currency-risk.md)
 - [ADR-0010: Per-symbol spread policy in ticks](ADR-0010-per-symbol-spread-policy.md)
+- [ADR-0011: Deterministic event-driven backtesting](ADR-0011-deterministic-event-backtesting.md)
+- [ADR-0012: Historical monotonic clock](ADR-0012-historical-clock.md)
+- [ADR-0013: Next-bar-open execution](ADR-0013-next-bar-open-execution.md)
+- [ADR-0014: Explicit deterministic transaction costs](ADR-0014-explicit-transaction-costs.md)
+- [ADR-0015: Adverse resolution of intra-bar ambiguity](ADR-0015-adverse-intrabar-ambiguity.md)
 
 ## Template
 

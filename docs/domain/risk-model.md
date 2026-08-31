@@ -34,9 +34,10 @@ conservative engineering values, not production risk recommendations:
 - `max_open_positions = 3`
 - static EURUSD/GBPUSD limits of 50 ticks (`0.00050`) and USDJPY 50 ticks (`0.050`)
 
-The tick values are reviewed paper fixtures, not broker-perfect P/L metadata. Commissions, slippage,
-swap, dynamic tick values, portfolio correlation, and broker-specific calculation modes remain
-excluded. Demo execution requires comparison against real MT5 symbol metadata and broker results.
+The tick values are reviewed paper fixtures, not broker-perfect P/L metadata. Risk sizing still
+excludes commissions, slippage, swap, dynamic tick values, portfolio correlation, and broker-specific
+calculation modes. The backtest ledger models deterministic commission/slippage separately; demo
+execution still requires comparison against real MT5 symbol metadata and broker results.
 
 ## Fail-closed rule order
 

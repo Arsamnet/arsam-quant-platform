@@ -12,6 +12,9 @@ at external boundaries. A regression test accompanies each corrected safety defe
 - `tests/integration`: FastAPI plus the complete in-memory paper vertical slice
 - `tests/contract`: versioned wire shape, exact decimal encoding, HMAC, and rejection semantics
 - `tests/regression`: replay, duplicate, and previously observed safety failures
+- `tests/unit/backtesting`: clocks, dataset validation, fingerprints, fills, costs, portfolio, metrics,
+  and chronological splits
+- backtesting integration/regression: golden fixture, future invisibility, CLI, and byte reproducibility
 
 Overall branch coverage must be at least 85%. Risk/core financial logic targets at least 95% where
 practical. Coverage is evidence, not the objective: boundary values, invalid state, stale/future
@@ -19,7 +22,8 @@ timestamps, missing stops, daily loss, maximum volume/positions, economic blacko
 non-invocation after rejection are explicit assertions.
 
 Hypothesis is used for financial properties such as volume limits and monotonic risk. Seeds and
-fixtures remain reproducible; deterministic backtests will record their dataset and random seed.
+fixtures remain reproducible; deterministic backtests record dataset/configuration identity and an
+explicit null seed while no randomness is configured.
 
 ## Quality gate
 

@@ -1,6 +1,6 @@
 # Demo Deployment Runbook
 
-Demo broker execution is **not implemented or authorized in 0.2.0**. This runbook is an approval
+Demo broker execution is **not implemented or authorized in 0.3.0**. This runbook is an approval
 gate, not deployment instructions.
 
 Before introducing `demo`: complete deterministic out-of-sample testing, validate static symbol

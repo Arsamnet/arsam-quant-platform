@@ -10,4 +10,6 @@ OpenAI, local PostgreSQL, and a future SaaS control plane. All external content 
 domain depends on none of these systems; adapters translate their data into validated point-in-time
 models.
 
-Version 0.2.0 has no MT5 process connection, broker order path, remote AI request, or public API.
+Version 0.3.0 has no MT5 process connection, broker order path, remote AI request, or public API. Its
+local backtester reads operator-supplied validated CSV, uses only null external-service adapters, and
+writes optional canonical JSON without requiring PostgreSQL.

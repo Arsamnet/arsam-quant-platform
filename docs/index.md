@@ -21,7 +21,9 @@ same change.
 ## Assurance
 
 - [AI policy](ai/ai-policy.md) and [prompt security](ai/prompt-security.md)
-- [Backtesting methodology](backtesting/methodology.md)
+- [Backtesting methodology](backtesting/methodology.md), [data contract](backtesting/data-contract.md),
+  [execution model](backtesting/execution-model.md), and
+  [reproducibility](backtesting/reproducibility.md)
 - [Testing strategy](testing/strategy.md)
 - [Threat model](security/threat-model.md)
 - [Observability](operations/observability.md) and [release process](operations/release-process.md)

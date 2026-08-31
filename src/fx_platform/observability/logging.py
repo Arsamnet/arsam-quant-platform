@@ -16,8 +16,12 @@ class JsonFormatter(logging.Formatter):
         "status_code",
         "elapsed_ms",
         "decision_id",
+        "run_id",
+        "dataset_id",
         "signal_id",
+        "risk_decision_id",
         "execution_id",
+        "trade_id",
         "node_id",
     )
 

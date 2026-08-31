@@ -11,7 +11,14 @@ from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
 from fx_platform.domain.common import TradeSide, TradingMode, require_utc
 from fx_platform.domain.economic import EconomicEvent, EventImportance
 from fx_platform.domain.execution import ExecutionIntent, ExecutionResult, ExecutionStatus
-from fx_platform.domain.market import AccountSnapshot, CurrencyConversionRate, MarketSnapshot
+from fx_platform.domain.market import (
+    AccountSnapshot,
+    CurrencyConversionFailure,
+    CurrencyConversionRate,
+    CurrencyConversionResult,
+    MarketSnapshot,
+    convert_currency,
+)
 from fx_platform.domain.risk import RiskDecision, RiskRejection
 from fx_platform.domain.strategy import SignalCandidate, StrategyDecision
 from tests.helpers import (
@@ -77,6 +84,39 @@ def test_conversion_rate_rejects_invalid_state(changes: dict[str, object]) -> No
 
     with pytest.raises(ValueError):
         CurrencyConversionRate(**values)
+
+
+def test_generic_currency_conversion_validates_amount_and_result_shape() -> None:
+    identity = convert_currency(
+        amount=Decimal(0),
+        source_currency="USD",
+        target_currency="USD",
+        conversion_rates=(),
+        evaluated_at=NOW,
+        max_conversion_age=timedelta(seconds=30),
+        max_future_skew=timedelta(0),
+    )
+
+    assert identity.amount == Decimal(0)
+    with pytest.raises(ValueError, match="negative"):
+        convert_currency(
+            amount=Decimal(-1),
+            source_currency="USD",
+            target_currency="USD",
+            conversion_rates=(),
+            evaluated_at=NOW,
+            max_conversion_age=timedelta(seconds=30),
+            max_future_skew=timedelta(0),
+        )
+    with pytest.raises(ValueError, match="exactly one"):
+        CurrencyConversionResult(amount=None, failure=None)
+    assert (
+        CurrencyConversionResult(
+            amount=None,
+            failure=CurrencyConversionFailure.CONVERSION_RATE_UNAVAILABLE,
+        ).failure
+        is CurrencyConversionFailure.CONVERSION_RATE_UNAVAILABLE
+    )
 
 
 @pytest.mark.parametrize(

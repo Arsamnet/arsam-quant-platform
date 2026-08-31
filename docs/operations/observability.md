@@ -1,9 +1,10 @@
 # Observability
 
 The bootstrap exposes `/health` and emits compact JSON logs containing timestamp, severity, logger,
-message, route/status/latency, and available decision/signal/execution/node IDs. It intentionally
-does not serialize arbitrary request data, headers, bodies, credentials, API keys, account IDs, or
-full authorization values.
+message, route/status/latency, and available run/dataset/decision/signal/risk/execution/trade/node
+IDs. Backtests log one INFO completion summary and DEBUG trace events while their canonical result
+retains the immutable audit sequence. Logging intentionally does not serialize arbitrary request or
+historical data, headers, bodies, credentials, API keys, account IDs, or full authorization values.
 
 Future metrics include process health, last market update/decision, AI latency/error rate, broker
 and database connectivity, decision/rejection counts, rejection reasons, open-position state,

@@ -21,6 +21,8 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Database loss/tamper | Versioned migration and audit model | PostgreSQL roles, encryption, backups, append-only history |
 | Host/RDP compromise | Hardening runbook, Defender, least privilege, VPN preference | Central monitoring and endpoint response |
 | Availability failure | New trades fail closed | Independent safe management of open positions |
+| Malformed/poisoned historical data | Strict CSV, UTC, OHLC, duplicate/order, finite-value validation | Signed/provenance-verified market datasets |
+| Look-ahead or result tampering | Streaming information boundary; canonical SHA-256 identities | Independent artifact signing and external replication |
 
 The largest bootstrap residual risk is that no real MT5 validator, PostgreSQL recovery path, market
 data provenance, or broker reconciliation exists. Consequently broker demo/live execution is

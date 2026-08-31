@@ -12,3 +12,8 @@
 - **EconomicEvent:** versioned point-in-time scheduled release with impact and affected currencies.
 - **TradingNode:** isolated local runtime associated with a node identity and future broker account.
 - **ControlPlane:** future SaaS coordination system with no direct broker credentials or OrderSend.
+- **HistoricalBar:** immutable UTC Bid OHLC plus explicit fixed spread for one supported timeframe.
+- **BacktestClock:** monotonic logical UTC time advanced only by historical events.
+- **SimulatedPosition:** reproducible paper position filled by the no-network backtest broker.
+- **TradeRecord:** immutable closed-trade ledger with gross P/L and separated costs.
+- **BacktestResult:** canonical run identity, report, ledger, open positions, and audit sequence.

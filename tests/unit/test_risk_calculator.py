@@ -101,6 +101,28 @@ def test_required_conversion_unavailable_fails_closed() -> None:
     assert result.failure is RiskCalculationFailure.CONVERSION_RATE_UNAVAILABLE
 
 
+def test_zero_cross_currency_exposure_remains_exact_without_conversion_crash() -> None:
+    result = _calculate(
+        signal=make_signal(
+            symbol="USDJPY",
+            entry_price=Decimal("150.000"),
+            stop_loss=Decimal("150.000"),
+        ),
+        specification=make_specification(
+            symbol="USDJPY",
+            base_currency="USD",
+            quote_currency="JPY",
+            tick_size=Decimal("0.001"),
+            tick_value=Decimal(100),
+            tick_value_currency="JPY",
+        ),
+        conversion_rates=(make_conversion_rate(),),
+    )
+
+    assert result is not None
+    assert result.amount == Decimal(0)
+
+
 def test_stale_future_and_ambiguous_conversion_inputs_fail_closed() -> None:
     signal = make_signal(symbol="USDJPY")
     specification = make_specification(

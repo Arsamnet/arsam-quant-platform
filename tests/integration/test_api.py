@@ -62,7 +62,7 @@ async def test_health_reports_only_non_sensitive_safe_mode() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "trading_mode": "paper",
         "ai_mode": "disabled",
         "node_id": "paper-node",

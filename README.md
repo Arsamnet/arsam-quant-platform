@@ -1,8 +1,8 @@
 # Arsam Quant Platform
 
 A production-oriented engineering foundation for a measurable, reproducible, risk-controlled,
-AI-assisted FX platform. Version **0.2.0** is a paper-only bootstrap: it contains no MT5 order code,
-no broker connection, and no path that permits live trading.
+AI-assisted FX platform. Version **0.3.0** adds deterministic event-driven historical simulation
+while remaining paper-only: it contains no MT5 order code, broker connection, or live-trading path.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
 statistical edge.
@@ -17,6 +17,9 @@ statistical edge.
 - Financial inputs are decimal JSON strings and domain calculations use `Decimal`.
 - Unknown symbols stop before strategy/advisory work; risk repeats symbol validation independently.
 - Daily loss is account-relative with an optional hard cap; spread and tick risk are symbol-aware.
+- Backtests stream validated UTC bars, use a monotonic historical clock, and expose no future bars.
+- Next-bar Bid/Ask fills, spread, commission, slippage, SL/TP, and adverse ambiguity are explicit.
+- Dataset, strategy, risk, execution, run, trade, and report identities are reproducible.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), and
 [docs/index.md](docs/index.md) before extending the system.
@@ -65,6 +68,25 @@ contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-n
 default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
 an explicit fresh directed conversion rate.
 
+## Deterministic backtest
+
+Run the committed synthetic EURUSD fixture locally:
+
+```text
+uv run fx-backtest \
+  --dataset tests/fixtures/backtesting/eurusd_sample.csv \
+  --initial-balance 10000 \
+  --output /tmp/backtest-report.json
+```
+
+The command validates the strict CSV contract, runs the existing strategy and fail-closed Risk
+Engine with null AI/calendar adapters, prints a concise summary, and optionally writes canonical
+JSON. It performs no network, database, MT5, broker, or external-AI operation. See the
+[backtesting methodology](docs/backtesting/methodology.md),
+[data contract](docs/backtesting/data-contract.md),
+[execution model](docs/backtesting/execution-model.md), and
+[reproducibility contract](docs/backtesting/reproducibility.md).
+
 ## Quality commands
 
 ```text
@@ -93,7 +115,7 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The bootstrap validates architectural boundaries, not trading performance. The recommended next
-increment is a deterministic event-driven backtest for the example strategy with explicit spread,
-commission, and slippage assumptions, followed by broker-specific contract metadata. Demo MT5
-execution remains out of scope until those controls and an independently compiled EA are reviewed.
+The platform validates architecture and simulation reproducibility, not trading performance or
+broker accuracy. The recommended next increment is broker-contract calibration against captured MT5
+demo metadata and hand-reconciled calculations. Demo execution remains out of scope until those
+controls and an independently compiled EA are reviewed.
