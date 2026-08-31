@@ -1,29 +1,38 @@
 # Windows Server 2025 Bootstrap and Hardening Runbook
 
 This runbook is the operational checklist for preparing an Arsam Quant Platform Windows trading
-node from the first provider login through private Tailscale administration and SSH public-key
-authentication.
+node from the first provider login through private Tailscale administration, named administration,
+SSH public-key authentication, access-path resilience testing, and the remaining Windows hardening
+work.
 
 It records the bootstrap sequence used for the first `fx01` node and is intended to be repeatable
-for later nodes. It deliberately uses placeholders instead of public IP addresses, passwords,
-Tailscale authentication URLs, account numbers, or other secrets.
+for later nodes. It deliberately uses placeholders instead of public IP addresses, Tailscale IPs,
+passwords, authentication URLs, broker account numbers, or other secrets.
 
-> **Current checkpoint:** the first `fx01` node has completed the runbook through **Phase 7 — SSH
-> public-key authentication**. The remaining hardening phases below are still required before MT5
-> broker calibration or any future demo deployment.
+> **Current checkpoint:** the first `fx01` node has completed the access bootstrap through named
+> administrator creation, Tailscale unattended mode, SSH key-only validation, RDP over Tailscale,
+> OpenSSH anti-abuse hardening, Administrator-session independence testing, and a controlled Windows
+> reboot with private SSH recovery. Public SSH/RDP are intentionally still retained as temporary
+> recovery paths until the wider Windows security baseline and all access tests are complete.
 
 ## Safety invariants
 
-- Keep the provider console/recovery path available until private administration has been tested.
-- Do not close public RDP or SSH until Tailscale access works from a second independent session.
-- Do not disable password authentication until SSH public-key authentication is independently
-  verified.
+- Keep the provider console/recovery path available until private administration has been fully
+  tested through logout, reconnect, and reboot.
+- Do not close public RDP or SSH merely because Tailscale works once. Restrict them only after all
+  replacement paths have been independently validated and survived reboot.
+- Do not disable SSH password authentication until every required administrator has a verified key,
+  an out-of-band recovery path exists, and key-only access has survived reboot.
 - Do not disable the built-in `Administrator` account until a named replacement administrator has
-  been created and tested through both SSH and RDP.
-- Never commit or paste passwords, private SSH keys, Tailscale login URLs, broker credentials, or
-  real account snapshots into the repository.
+  been created and tested through both SSH and RDP, elevation works, and recovery procedures are
+  proven.
+- Never commit or paste passwords, private SSH keys, Tailscale login URLs, broker credentials, real
+  account snapshots, or provider secrets into the repository.
 - FastAPI, PostgreSQL, Redis, and internal control-plane services must never be exposed directly to
   the public Internet.
+- Windows Firewall must not be disabled as a troubleshooting shortcut.
+- Infrastructure uncertainty is fail-closed: unexpected listener, route, service state, or access
+  behavior blocks progression until explained.
 - Version 0.4.0 remains read-only with respect to MT5. No broker order submission is part of this
   bootstrap procedure.
 
@@ -37,7 +46,7 @@ Tailscale authentication URLs, account numbers, or other secrets.
 - [x] Hostname is `fx01`.
 - [x] Initial `Administrator` credentials are available from the provider.
 - [x] Provider credentials are not stored in Git or project documentation.
-- [ ] Bootstrap password has been rotated after the named-administrator phase is complete.
+- [ ] Bootstrap/provider password rotation is deferred until all recovery-path tests are complete.
 
 ### Procedure
 
@@ -120,17 +129,18 @@ TcpTestSucceeded : True
 
 ### Why this was necessary on `fx01`
 
-The pre-created OpenSSH firewall rule was enabled for the `Private` profile while the VPS network
+The pre-created OpenSSH firewall rule was enabled for the `Private` profile while the VPS Internet
 interfaces were classified as `Public`. The service was healthy and listening, but the rule did not
-apply to the active network profile.
+apply to the active public network profile.
 
 ### Checklist
 
-- [x] Active Windows network profile was inspected.
-- [x] VPS interfaces remained classified as `Public`; they were **not** changed to `Private` merely
-  to make SSH work.
-- [x] OpenSSH inbound rule was enabled for `Public,Private`.
+- [x] Active Windows network profiles were inspected.
+- [x] VPS Internet interfaces remained classified as `Public`; they were **not** changed to
+  `Private` merely to make SSH work.
+- [x] OpenSSH inbound rule was enabled for `Public,Private` during bootstrap.
 - [x] Rule direction is inbound and action is allow.
+- [x] Tailscale interface later appeared as `Private`.
 
 ### Procedure
 
@@ -171,8 +181,28 @@ Direction : Inbound
 Action    : Allow
 ```
 
-> This broad bootstrap rule is temporary. Later phases restrict administration to the private
-> Tailscale path and remove unnecessary public exposure.
+Later verification on `fx01` also confirmed:
+
+```powershell
+Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" |
+    Get-NetFirewallAddressFilter
+
+Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" |
+    Get-NetFirewallPortFilter
+```
+
+with effective values equivalent to:
+
+```text
+LocalAddress  : Any
+RemoteAddress : Any
+Protocol      : TCP
+LocalPort     : 22
+```
+
+> This broad bootstrap rule is temporary. It is intentionally retained until the remaining access
+> and recovery tests are complete. Later phases restrict administration to the private Tailscale
+> path and remove unnecessary public exposure.
 
 ---
 
@@ -181,8 +211,8 @@ Action    : Allow
 ### What happened on the first node
 
 Local Windows tests showed `sshd` running, TCP/22 listening, and localhost connectivity succeeding.
-However, direct SSH from the Mac over the ordinary Internet path timed out. The same public endpoint
-became reachable when the Mac used an existing external VPN.
+However, direct SSH from the Mac over the ordinary Internet path initially timed out. The same
+public endpoint became reachable when the Mac used an existing external VPN.
 
 This demonstrated that the Windows SSH service itself was functioning and that the remaining issue
 was in the upstream/network path rather than a reason to disable Windows Firewall.
@@ -272,6 +302,7 @@ working source.
 - [x] Node was authenticated into the intended Tailnet.
 - [x] Node hostname in Tailscale is `fx01`.
 - [x] Server and Mac appear in the same Tailnet.
+- [x] Tailscale assigned the server a private 100.x address.
 
 ### Install
 
@@ -296,14 +327,14 @@ Check initial state:
 
 A newly installed node is expected to report `Logged out` / `NeedsLogin` until authenticated.
 
-### Authenticate as an unattended server node
+### Authenticate the node
 
 ```cmd
 "C:\Program Files\Tailscale\tailscale.exe" login --hostname=fx01 --unattended
 ```
 
 The command prints a short-lived authentication URL. Open it in a trusted browser, authenticate to
-the intended Tailnet, and **do not record that URL in Git, chat logs, tickets, or runbooks**.
+the intended Tailnet, and **do not record that URL in Git, tickets, deployment docs, or runbooks**.
 
 After authentication:
 
@@ -313,7 +344,7 @@ After authentication:
 ```
 
 Record the assigned private address in the operator's secure deployment notes, not in source
-control. Tailscale addresses may change between environments, so all examples below use
+control. Tailscale addresses may vary between environments, so all examples below use
 `<TAILSCALE_SERVER_IP>`.
 
 ---
@@ -328,6 +359,7 @@ control. Tailscale addresses may change between environments, so all examples be
   session remains open.
 - [x] Existing external VPN on the Mac was disabled.
 - [x] SSH over Tailscale continued to work without that VPN.
+- [x] TCP/22 and TCP/3389 were reachable over the Tailscale path.
 - [x] Public TCP/22 and TCP/3389 were **not** closed before this proof was complete.
 
 ### Procedure on the Mac
@@ -381,8 +413,7 @@ Only after this succeeds is the private administration path considered establish
 - [x] `sshd` was restarted.
 - [x] A second SSH session proved public-key-only authentication with password fallback disabled on
   the client side.
-- [ ] Server-side password authentication is disabled later, after named administrator and recovery
-  procedures are validated.
+- [ ] Server-side password authentication remains enabled until the final access-hardening phase.
 
 ### 7.1 Check or create the Mac key
 
@@ -457,6 +488,8 @@ Do **not** close the working administrative session before this succeeds.
 
 ```bash
 ssh \
+  -o IdentitiesOnly=yes \
+  -i ~/.ssh/id_ed25519 \
   -o PreferredAuthentications=publickey \
   -o PasswordAuthentication=no \
   Administrator@<TAILSCALE_SERVER_IP>
@@ -478,56 +511,601 @@ fx01
 fx01\administrator
 ```
 
-At this point the first-node bootstrap checkpoint is complete.
-
----
-
-# Current bootstrap checkpoint
-
-The following controls have been completed on the first `fx01` node:
-
-- [x] Provider console/RDP recovery path established.
-- [x] OpenSSH enabled, started, and made automatic.
-- [x] TCP/22 local listener verified.
-- [x] Windows Firewall profile mismatch diagnosed without disabling firewall protection.
-- [x] First SSH host key independently verified.
-- [x] Remote command-line administration proven.
-- [x] Tailscale installed using the explicit `winget` source.
-- [x] `fx01` and the administration Mac joined to the same Tailnet.
-- [x] SSH over Tailscale proven without dependence on the Mac's previous VPN path.
-- [x] Administrator ED25519 key authentication configured with restricted Windows ACLs.
-- [x] Client-enforced key-only SSH test succeeded.
-
-The server is **not yet considered fully hardened or deployment-ready**. Continue with the phases
-below before installing or calibrating the broker runtime.
-
 ---
 
 ## Phase 8 — Create and prove a named administration account
 
-### Required before disabling built-in Administrator
+The named account is the intended human administration identity. The built-in `Administrator`
+account remains available only as a temporary recovery/bootstrap path until later hardening.
 
-- [ ] Create a named local administrator for human operations.
-- [ ] Give that account a unique strong password stored outside Git.
-- [ ] Configure SSH public-key authentication for the named administrator.
-- [ ] Prove SSH over Tailscale from a second terminal.
-- [ ] Prove RDP over Tailscale.
-- [ ] Confirm elevation works where required.
-- [ ] Retain the provider console as break-glass recovery.
-- [ ] Only then consider reducing or disabling routine use of the built-in `Administrator` account.
+### Completed checklist
 
-Do not create application/service processes under the human administrator account.
+- [x] Created local user `fxadmin`.
+- [x] Used a strong, unique password and did not store it in Git.
+- [x] Added `FX01\fxadmin` to the local `Administrators` group.
+- [x] Corrected the account flag so `PasswordRequired=True`.
+- [x] Verified the local Administrators SID `S-1-5-32-544` is enabled in the `fxadmin` token.
+- [x] Verified `Get-LocalGroupMember -Group "Administrators"` contains both the built-in
+  Administrator and `fxadmin`.
+- [x] Proved public-key-only SSH over Tailscale as `fxadmin`.
+- [x] Proved RDP over Tailscale as `FX01\fxadmin`.
+- [x] Verified the RDP session name is `RDP-Tcp#...`.
+- [x] Verified elevated administrative PowerShell works through UAC/`Run as administrator`.
+- [x] Provider/public recovery paths remain intentionally available.
+- [ ] Routine use of the built-in Administrator has not yet been disabled.
+
+### Create the user
+
+Read the password interactively instead of placing it on a command line:
+
+```powershell
+$Password = Read-Host "Enter NEW password for fxadmin" -AsSecureString
+```
+
+Create the account using a description of no more than the Windows local-user description limit:
+
+```powershell
+New-LocalUser `
+    -Name "fxadmin" `
+    -Password $Password `
+    -FullName "Arsam Quant Administrator" `
+    -Description "Arsam Quant admin"
+```
+
+If `InvalidPasswordException` is returned, do not weaken password policy. Re-enter a new strong
+password and retry.
+
+Add the account to local administrators:
+
+```powershell
+Add-LocalGroupMember `
+    -Group "Administrators" `
+    -Member "fxadmin"
+```
+
+Require a password for the account:
+
+```powershell
+net user fxadmin /passwordreq:yes
+```
+
+Verify:
+
+```powershell
+Get-LocalUser -Name "fxadmin" |
+    Select-Object Name,Enabled,PasswordRequired,PasswordExpires
+
+Get-LocalGroupMember -Group "Administrators" |
+    Select-Object Name,ObjectClass
+```
+
+### Prove SSH as the named administrator
+
+Windows OpenSSH uses `C:\ProgramData\ssh\administrators_authorized_keys` for members of the local
+Administrators group, so the validated administrator key can be used for `fxadmin` without storing a
+second copy in the user profile.
+
+From the Mac:
+
+```bash
+ssh \
+  -o IdentitiesOnly=yes \
+  -i ~/.ssh/id_ed25519 \
+  -o PreferredAuthentications=publickey \
+  -o PasswordAuthentication=no \
+  fxadmin@<TAILSCALE_SERVER_IP>
+```
+
+Verify:
+
+```cmd
+hostname
+whoami
+```
+
+Expected:
+
+```text
+fx01
+fx01\fxadmin
+```
+
+Confirm Administrators-group membership:
+
+```powershell
+whoami /groups | Select-String "S-1-5-32-544"
+```
+
+### Prove RDP over Tailscale
+
+Use the Microsoft Windows App on macOS with:
+
+```text
+PC:       <TAILSCALE_SERVER_IP>
+Username: FX01\fxadmin
+Gateway:  none
+```
+
+On first connection, Windows App may warn that it cannot verify the RDP server certificate. Do not
+blindly accept it. Compare the certificate SHA-1 fingerprint/thumbprint to the certificate on the
+server:
+
+```powershell
+Get-ChildItem "Cert:\LocalMachine\Remote Desktop" |
+    Format-List Subject,Issuer,Thumbprint,NotBefore,NotAfter
+```
+
+Only continue when the fingerprint shown by Windows App matches the server certificate.
+
+Inside the RDP session verify:
+
+```powershell
+hostname
+whoami
+$env:SESSIONNAME
+```
+
+Expected shape:
+
+```text
+fx01
+fx01\fxadmin
+RDP-Tcp#...
+```
+
+`TermService` may show `StartType=Manual` while running because Remote Desktop Services can be
+trigger-started. Do not change it merely to make the table say `Automatic`.
 
 ---
 
-## Phase 9 — Move SSH and RDP administration to Tailscale-only access
+## Phase 9 — Tailscale unattended mode and multi-user behavior
+
+### Completed checklist
+
+- [x] Tailscale service is `Running` with `StartType=Automatic`.
+- [x] Tailscale was explicitly put into unattended/daemon mode.
+- [x] Existing non-default hostname was preserved while enabling unattended mode.
+- [x] `tailscale debug prefs` confirmed `ForceDaemon=true`.
+- [x] `WantRunning=true` and `LoggedOut=false` were confirmed.
+- [x] Tailscale interface is present as a `Private` Windows network profile.
+- [x] Tailscale traffic continued after logging out the built-in Administrator session.
+- [x] TCP/22 and TCP/3389 remained reachable over the Tailnet after Administrator logout.
+- [x] A Windows reboot later proved Tailscale returns before an interactive Administrator login.
+
+### Enable unattended mode without resetting existing preferences
+
+If `tailscale up --unattended` reports that all non-default flags must be repeated, **do not** use
+`--reset` just to silence the message. Preserve the configured hostname explicitly:
+
+```powershell
+& "C:\Program Files\Tailscale\tailscale.exe" up --unattended --hostname=fx01
+```
+
+Validate effective preferences from the controlling administrative session:
+
+```powershell
+& "C:\Program Files\Tailscale\tailscale.exe" debug prefs
+```
+
+Required values include:
+
+```text
+"WantRunning": true
+"LoggedOut": false
+"Hostname": "fx01"
+"ForceDaemon": true
+```
+
+### Important Windows multi-user CLI behavior
+
+A secondary Windows user may see an error equivalent to:
+
+```text
+401 Unauthorized: Tailscale already in use by FX01\Administrator
+```
+
+when running `tailscale status` or `tailscale ip -4` while another Windows user owns the local
+Tailscale control session. On `fx01`, this did **not** mean the network dataplane or the SYSTEM
+service was down.
+
+Do not treat this CLI ownership error as a connectivity failure when all of the following are true:
+
+```text
+ForceDaemon=true
+Tailscale service=Running
+Tailnet ping/TCP reachability succeeds
+SSH/RDP over the Tailscale address succeeds
+```
+
+Inspect the service processes if needed:
+
+```powershell
+Get-Process Tailscale,tailscaled -IncludeUserName -ErrorAction SilentlyContinue |
+    Select-Object Id,ProcessName,UserName,SessionId
+```
+
+The `tailscaled` service process should run under `NT AUTHORITY\SYSTEM`. More than one Tailscale
+process can exist; do not kill them merely because multiple process rows are visible.
+
+---
+
+## Phase 10 — Prove independence from the built-in Administrator session
+
+Before rebooting, prove that private administration does not depend on keeping the bootstrap
+Administrator logged in.
+
+### Completed checklist
+
+- [x] `quser` showed the built-in Administrator and `fxadmin` as separate sessions.
+- [x] `fxadmin` PowerShell was elevated via UAC when cross-session logout required elevation.
+- [x] The built-in Administrator session was logged off while the `fxadmin` RDP session remained.
+- [x] `sshd` remained `Running/Automatic` after Administrator logout.
+- [x] Tailscale remained `Running/Automatic` after Administrator logout.
+- [x] Local TCP/22 remained healthy.
+- [x] Tailscale TCP/22 and TCP/3389 remained reachable from the Mac.
+
+### Procedure
+
+Inspect sessions:
+
+```powershell
+quser
+```
+
+If the Administrator session must be logged off from `fxadmin`, use an **elevated** PowerShell. A
+non-elevated local administrator may receive `Error 5: Access is denied` because of UAC token
+filtering.
+
+Open an elevated shell:
+
+```powershell
+Start-Process powershell.exe -Verb RunAs
+```
+
+Then log off only the verified Administrator session ID:
+
+```powershell
+logoff <ADMINISTRATOR_SESSION_ID>
+```
+
+Never guess the session ID; read it from `quser` immediately before the command.
+
+After logout, confirm service health:
+
+```powershell
+Get-Service sshd,Tailscale |
+    Select-Object Name,Status,StartType
+
+Test-NetConnection 127.0.0.1 -Port 22
+```
+
+From the Mac verify the private dataplane:
+
+```bash
+ping -c 3 <TAILSCALE_SERVER_IP>
+nc -vz -w 5 <TAILSCALE_SERVER_IP> 22
+nc -vz -w 5 <TAILSCALE_SERVER_IP> 3389
+```
+
+An initial SSH reconnect on the first node failed with `Exceeded MaxStartups`. Investigation proved
+that this was **not** caused by Administrator logout or Tailscale failure; it was caused by public
+SSH abuse described in the next phase.
+
+---
+
+## Phase 11 — OpenSSH abuse incident and anti-exhaustion hardening
+
+### Incident observed during bootstrap
+
+After Administrator logout, a new SSH connection from the Mac reached the Windows `sshd` process
+but returned:
+
+```text
+kex_exchange_identification: banner line 0: Exceeded MaxStartups
+```
+
+The service itself was healthy:
+
+```text
+sshd      Running  Automatic
+TCP/22    Listen on 0.0.0.0 and ::
+localhost TCP/22 test succeeded
+Tailscale TCP/22 test succeeded
+```
+
+Connection inspection showed a single external public source holding more than twenty simultaneous
+SSH connections while the Mac had only the expected Tailnet connections. This exhausted the
+unauthenticated startup pool under the default OpenSSH policy.
+
+### Diagnosis commands
+
+Count TCP/22 states:
+
+```powershell
+Get-NetTCPConnection -LocalPort 22 -ErrorAction SilentlyContinue |
+    Group-Object State |
+    Sort-Object Count -Descending |
+    Select-Object Count,Name
+```
+
+Group connections by remote source:
+
+```powershell
+Get-NetTCPConnection -LocalPort 22 -ErrorAction SilentlyContinue |
+    Where-Object {$_.State -ne "Listen"} |
+    Group-Object RemoteAddress |
+    Sort-Object Count -Descending |
+    Select-Object Count,Name
+```
+
+Inspect effective SSH defaults:
+
+```powershell
+& "C:\Windows\System32\OpenSSH\sshd.exe" -T |
+    Select-String "logingracetime|maxauthtries|maxstartups|persourcemaxstartups"
+```
+
+The first node initially reported:
+
+```text
+logingracetime 120
+maxauthtries 6
+maxstartups 10:30:100
+persourcemaxstartups none
+```
+
+The absence of a per-source startup limit allowed one source to consume enough unauthenticated
+slots to trigger random connection drops.
+
+### Temporary block for the abusive source
+
+A targeted Windows Firewall block was added for the observed abusive source without disabling the
+firewall or closing all public SSH during the recovery-test phase:
+
+```powershell
+New-NetFirewallRule `
+  -Name "Block-SSH-<ABUSIVE_IP>" `
+  -DisplayName "Block abusive SSH source <ABUSIVE_IP>" `
+  -Direction Inbound `
+  -Action Block `
+  -Protocol TCP `
+  -LocalPort 22 `
+  -RemoteAddress <ABUSIVE_IP> `
+  -Profile Public,Private
+```
+
+Do not copy the first node's observed scanner IP into future deployments. Always inspect the actual
+remote source before creating a targeted block.
+
+Existing established connections can remain visible after adding a block rule. If a clean reset is
+required and RDP/provider recovery is confirmed, restart the SSH service from the RDP session:
+
+```powershell
+Restart-Service sshd
+```
+
+If stale child processes remain after a controlled service stop, inspect before taking further
+action. Do not indiscriminately kill system processes.
+
+### Harden `sshd_config`
+
+Back up the configuration before editing:
+
+```powershell
+Copy-Item `
+  "C:\ProgramData\ssh\sshd_config" `
+  "C:\ProgramData\ssh\sshd_config.pre-hardening.bak"
+```
+
+In the **global section before any `Match` block**, use:
+
+```text
+LoginGraceTime 30
+MaxAuthTries 3
+MaxStartups 10:30:100
+PerSourceMaxStartups 4
+```
+
+Rationale:
+
+- `LoginGraceTime 30` reduces the time an unauthenticated socket can occupy startup capacity.
+- `MaxAuthTries 3` limits authentication attempts per connection.
+- `MaxStartups 10:30:100` retains the standard global startup behavior.
+- `PerSourceMaxStartups 4` prevents one source from consuming the entire unauthenticated pool.
+
+Do **not** respond to this incident merely by greatly increasing `MaxStartups`; that increases the
+resources an attacker can consume and does not solve the single-source exhaustion problem.
+
+### Validate before restart
+
+Syntax validation must return no output:
+
+```powershell
+& "C:\Windows\System32\OpenSSH\sshd.exe" -t
+```
+
+Inspect effective configuration:
+
+```powershell
+& "C:\Windows\System32\OpenSSH\sshd.exe" -T |
+    Select-String "logingracetime|maxauthtries|maxstartups|persourcemaxstartups"
+```
+
+Required output:
+
+```text
+logingracetime 30
+maxauthtries 3
+maxstartups 10:30:100
+persourcemaxstartups 4
+```
+
+Only after `sshd -t` succeeds:
+
+```powershell
+Restart-Service sshd
+Get-Service sshd | Select-Object Name,Status,StartType
+```
+
+Then re-test key-only SSH from the Mac.
+
+### Result on the first node
+
+- [x] `Exceeded MaxStartups` root cause identified as public SSH connection abuse.
+- [x] The observed abusive source was temporarily blocked.
+- [x] `LoginGraceTime` reduced to 30 seconds.
+- [x] `MaxAuthTries` reduced to 3.
+- [x] `MaxStartups` retained at `10:30:100`.
+- [x] `PerSourceMaxStartups` set to 4.
+- [x] `sshd -t` passed with no output.
+- [x] `sshd -T` confirmed all effective values.
+- [x] `sshd` restarted and remained `Running/Automatic`.
+- [x] Connection counts returned to expected low levels; occasional single external scanner
+  connections no longer consumed the startup pool.
+- [x] Named-admin key-only SSH over Tailscale succeeded after hardening.
+
+The presence of occasional single public scanner connections is expected while public SSH remains
+open. This is one reason public SSH remains a temporary recovery path rather than the intended
+steady-state administration design.
+
+---
+
+## Phase 12 — Controlled reboot and access-path resilience
+
+The reboot test proves that private administration does not depend on an interactive Administrator
+session and that Tailscale/OpenSSH return automatically after Windows restart.
 
 ### Preconditions
 
-- [ ] Tailscale starts automatically after reboot.
-- [ ] Named administrator works over Tailscale SSH.
-- [ ] RDP works using the Tailscale address/private path.
-- [ ] Provider console/recovery remains available.
+- [x] Provider recovery console remains accessible.
+- [x] Named administrator exists and has a proven SSH key.
+- [x] RDP over Tailscale worked before reboot.
+- [x] Tailscale `ForceDaemon=true` was confirmed.
+- [x] `sshd` and Tailscale services were `Running/Automatic`.
+- [x] OpenSSH configuration passed `sshd -t`.
+- [x] Public recovery paths were intentionally left unchanged.
+
+### Restart
+
+Use a normal Windows restart from the elevated `fxadmin` RDP session:
+
+```powershell
+Restart-Computer
+```
+
+A provider hard-reset/power-cycle is **not** the preferred first resilience test because the goal is
+to validate a normal operating-system reboot and service recovery path.
+
+### Post-reboot checks from the Mac
+
+Wait for the node to return, then test:
+
+```bash
+ping -c 3 <TAILSCALE_SERVER_IP>
+nc -vz -w 5 <TAILSCALE_SERVER_IP> 22
+nc -vz -w 5 <TAILSCALE_SERVER_IP> 3389
+```
+
+A small amount of packet loss or high latency during the first seconds after boot can occur while
+Windows and the overlay network settle. Do not call the node healthy until TCP service checks and
+actual authentication succeed.
+
+Prove key-only SSH:
+
+```bash
+ssh \
+  -o IdentitiesOnly=yes \
+  -i ~/.ssh/id_ed25519 \
+  -o PreferredAuthentications=publickey \
+  -o PasswordAuthentication=no \
+  fxadmin@<TAILSCALE_SERVER_IP>
+```
+
+Verify:
+
+```cmd
+hostname
+whoami
+powershell
+```
+
+Then:
+
+```powershell
+Get-Service sshd,Tailscale,TermService |
+    Select-Object Name,Status,StartType
+
+(Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+
+& "C:\Windows\System32\OpenSSH\sshd.exe" -T |
+    Select-String "logingracetime|maxauthtries|maxstartups|persourcemaxstartups"
+```
+
+### First-node result
+
+- [x] Tailscale private address responded again after reboot.
+- [x] TCP/22 was reachable over Tailscale after reboot.
+- [x] TCP/3389 was reachable over Tailscale after reboot.
+- [x] Key-only SSH as `fxadmin` succeeded after reboot.
+- [x] `hostname` returned `fx01`.
+- [x] `whoami` returned `fx01\fxadmin`.
+- [x] `sshd` returned as `Running/Automatic`.
+- [x] Tailscale returned as `Running/Automatic`.
+- [x] `TermService` was `Running` with trigger/manual start behavior unchanged.
+- [x] OpenSSH anti-abuse settings persisted across reboot.
+- [ ] A fresh interactive RDP login after this reboot should still be recorded explicitly before
+  public RDP is restricted, even though TCP/3389 was reachable and RDP had already been proven
+  before reboot.
+
+---
+
+# Current access-bootstrap checkpoint
+
+The following controls have now been completed on the first `fx01` node:
+
+- [x] Provider console/RDP recovery path retained.
+- [x] OpenSSH enabled, started, automatic, and locally verified.
+- [x] Windows Firewall remained enabled throughout troubleshooting.
+- [x] First SSH host key independently verified.
+- [x] Tailscale installed and server/Mac joined to the same Tailnet.
+- [x] Tailscale unattended mode confirmed with `ForceDaemon=true`.
+- [x] SSH over Tailscale works without the Mac's previous external VPN.
+- [x] Administrator ED25519 key authentication configured with restricted ACLs.
+- [x] Named administrator `fxadmin` created and added to Administrators.
+- [x] `PasswordRequired=True` confirmed for `fxadmin`.
+- [x] Public-key-only SSH as `fxadmin` proven.
+- [x] RDP over Tailscale as `fxadmin` proven before reboot with certificate fingerprint validation.
+- [x] Administrator session logout did not stop Tailscale or OpenSSH services.
+- [x] Public SSH `MaxStartups` exhaustion incident diagnosed and contained.
+- [x] Per-source SSH startup limiting enabled and validated.
+- [x] Controlled Windows reboot completed.
+- [x] Tailscale, TCP/22, TCP/3389, and key-only SSH returned after reboot.
+- [x] OpenSSH hardening persisted across reboot.
+- [ ] Fresh post-reboot RDP authentication remains to be explicitly recorded.
+- [ ] Public SSH is intentionally still open as a temporary recovery path.
+- [ ] Public RDP is intentionally still open as a temporary recovery path.
+- [ ] SSH password authentication is intentionally still enabled during the remaining hardening
+  work.
+- [ ] Built-in `Administrator` is not yet disabled.
+
+The server is **not yet considered fully hardened or deployment-ready**. Continue with the Windows
+platform security baseline before broker calibration or MT5 validation.
+
+---
+
+## Phase 13 — Move SSH and RDP administration to Tailscale-only access
+
+This phase is intentionally deferred until all security-baseline work, recovery checks, and the
+fresh post-reboot RDP test are complete.
+
+### Preconditions
+
+- [x] Tailscale starts automatically after reboot.
+- [x] Named administrator works over Tailscale SSH after reboot.
+- [x] RDP worked using the Tailscale path before reboot.
+- [x] Provider/public recovery remains available.
+- [ ] Fresh post-reboot RDP login has been explicitly confirmed.
+- [ ] Wider Windows security baseline is complete.
 
 ### Required controls
 
@@ -537,16 +1115,25 @@ Do not create application/service processes under the human administrator accoun
 - [ ] Re-test RDP through Tailscale after every firewall change.
 - [ ] Do not expose WinRM publicly.
 - [ ] Confirm no new administrative listener became public as a side effect.
+- [ ] Remove obsolete temporary broad allow/block rules once the final policy is in place and tested.
 
-Prefer deleting temporary broad allow rules after the private path is proven rather than leaving
-unused bootstrap exceptions behind.
+Never remove the current access path until its replacement has been independently tested and has
+survived reboot.
 
 ---
 
-## Phase 10 — Harden OpenSSH authentication
+## Phase 14 — Harden OpenSSH authentication further
 
-After the named administrator and Tailscale path have survived an independent reconnect/reboot test:
+Per-source startup protection is already active, but password authentication is intentionally left
+available during the remaining recovery-validation period.
 
+After the named administrator, Tailscale path, provider recovery, and post-reboot RDP path have all
+been fully revalidated:
+
+- [x] `LoginGraceTime 30`.
+- [x] `MaxAuthTries 3`.
+- [x] `MaxStartups 10:30:100`.
+- [x] `PerSourceMaxStartups 4`.
 - [ ] Confirm all required administrators have working public keys.
 - [ ] Preserve an out-of-band recovery path.
 - [ ] Disable SSH password authentication.
@@ -555,12 +1142,13 @@ After the named administrator and Tailscale path have survived an independent re
 - [ ] Review permitted administrative users/groups.
 - [ ] Restart `sshd` and test a fresh key-only session before closing the previous one.
 - [ ] Verify failed password attempts can no longer authenticate.
+- [ ] Re-test after another maintenance reboot if authentication policy changes materially.
 
 Never make authentication changes in the only remaining administrative session.
 
 ---
 
-## Phase 11 — Windows platform security baseline
+## Phase 15 — Windows platform security baseline
 
 Before broker calibration:
 
@@ -575,6 +1163,10 @@ Before broker calibration:
 - [ ] Configure time synchronization and record timezone/time-source assumptions.
 - [ ] Configure event/audit logging and protected retention.
 - [ ] Configure account lockout and sensible interactive-logon policy.
+- [ ] Review the initial `net accounts` baseline; the first node initially reported weak/default
+  values including no lockout threshold and no minimum password length.
+- [ ] Set an approved password/lockout baseline only after ensuring it will not lock out recovery
+  accounts unexpectedly.
 - [ ] Rotate provider/bootstrap credentials after recovery access is confirmed.
 
 Useful inspection commands:
@@ -595,14 +1187,17 @@ Get-MpComputerStatus |
 Get-NetTCPConnection -State Listen |
     Sort-Object LocalPort |
     Select-Object LocalAddress,LocalPort,OwningProcess
+
+net accounts
 ```
 
-Any unexpected listener, disabled security protection, failed time synchronization, or residual
-public administrative exposure blocks broker calibration and deployment progression.
+Any unexpected listener, disabled security protection, failed time synchronization, residual
+unreviewed public administrative exposure, or account-policy regression blocks broker calibration
+and deployment progression.
 
 ---
 
-## Phase 12 — Application/service account and runtime isolation
+## Phase 16 — Application/service account and runtime isolation
 
 Before running persistent Arsam Quant Platform components:
 
@@ -618,7 +1213,7 @@ Before running persistent Arsam Quant Platform components:
 
 ---
 
-## Phase 13 — Development/runtime toolchain
+## Phase 17 — Development/runtime toolchain
 
 After the Windows security baseline is complete:
 
@@ -630,20 +1225,20 @@ After the Windows security baseline is complete:
 - [ ] Run the Windows-compatible project quality/bootstrap checks.
 - [ ] Do not copy `.env` or secrets from the development Mac wholesale.
 
-For the current 0.4.0 validation milestone, the reviewed branch checkpoint before Windows-specific
-validation was:
+For the current 0.4.0 validation milestone, the reviewed implementation checkpoint before Windows-
+specific validation was:
 
 ```text
 feat/mt5-broker-validation
 4238464  feat: add read-only MT5 broker validation
 ```
 
-If the branch advances, record and review the exact newer commit rather than assuming this SHA is
-still current.
+Documentation commits may advance the branch beyond that implementation SHA. Record and review the
+exact current commit before broker validation rather than assuming this SHA remains the branch head.
 
 ---
 
-## Phase 14 — MT5/FIBOGroup read-only calibration gate
+## Phase 18 — MT5/FIBOGroup read-only calibration gate
 
 Only after the preceding security phases are complete:
 
@@ -670,9 +1265,12 @@ Windows MetaEditor compilation and real broker read-only evidence remain release
 
 A future demo deployment is blocked by any of the following:
 
-- public SSH or RDP still exposed without an explicit approved exception;
+- public SSH or RDP still exposed without an explicit approved temporary exception;
 - no tested Tailscale/private administration path;
+- private access has not survived logout/reboot testing;
 - password-only SSH administration;
+- no per-source protection against unauthenticated SSH startup exhaustion while public SSH remains
+  temporarily exposed;
 - unknown/unexpected listening ports;
 - disabled Defender/firewall protection;
 - failed or ambiguous time synchronization;
