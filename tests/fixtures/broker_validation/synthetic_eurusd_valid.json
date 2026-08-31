@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "mode": "read_only_metadata_probe",
+  "source_type": "mql5_metadata_probe",
+  "acquired_at": "2026-08-31T10:00:00Z",
+  "broker": {
+    "company": "SYNTHETIC TEST BROKER - NOT FIBOGROUP DATA",
+    "server": "SYNTHETIC-DEMO - NOT BROKER CALIBRATED"
+  },
+  "terminal": {
+    "name": "Synthetic MetaTrader 5 Fixture",
+    "build": 5000,
+    "version": null,
+    "connected": true,
+    "server_time_raw": "2026.08.31 13:30:00",
+    "server_utc_offset_minutes": null
+  },
+  "account": {
+    "currency": "USD",
+    "trade_mode_code": 0,
+    "leverage": 100,
+    "margin_mode_code": 2,
+    "trade_allowed": true,
+    "automated_trading_allowed": true,
+    "account_id_hash": null
+  },
+  "requested_symbols": ["EURUSD"],
+  "symbols": [
+    {
+      "name": "EURUSD",
+      "base_currency": "EUR",
+      "quote_currency": "USD",
+      "profit_currency": "USD",
+      "margin_currency": "EUR",
+      "digits": 5,
+      "point": "0.00001",
+      "tick_size": "0.00001",
+      "tick_value": "1.00",
+      "tick_value_profit": "1.00",
+      "tick_value_loss": "1.00",
+      "contract_size": "100000",
+      "volume_min": "0.01",
+      "volume_max": "100.00",
+      "volume_step": "0.01",
+      "volume_limit": "0",
+      "bid": "1.10000",
+      "ask": "1.10020",
+      "reported_spread_points": 20,
+      "spread_is_floating": true,
+      "trade_mode_code": 4,
+      "order_mode_mask": 127,
+      "filling_mode_mask": 3,
+      "expiration_mode_mask": 15,
+      "stop_level_points": 10,
+      "freeze_level_points": 0,
+      "calculation_mode_code": 0,
+      "swap_mode_code": 1,
+      "swap_long": "-6.50",
+      "swap_short": "2.10",
+      "rollover_day": 3,
+      "margin_initial": "0",
+      "margin_maintenance": "0",
+      "observed_at": "2026-08-31T10:00:00Z"
+    }
+  ],
+  "profit_calculations": [
+    {
+      "symbol": "EURUSD",
+      "side": "buy",
+      "volume": "0.01",
+      "open_price": "1.10020",
+      "close_price": "1.10021",
+      "calculated_profit": "0.01",
+      "success": true,
+      "error_code": 0,
+      "observed_at": "2026-08-31T10:00:00Z"
+    },
+    {
+      "symbol": "EURUSD",
+      "side": "sell",
+      "volume": "0.01",
+      "open_price": "1.10000",
+      "close_price": "1.09999",
+      "calculated_profit": "0.01",
+      "success": true,
+      "error_code": 0,
+      "observed_at": "2026-08-31T10:00:00Z"
+    }
+  ],
+  "margin_calculations": [
+    {
+      "symbol": "EURUSD",
+      "side": "buy",
+      "volume": "0.01",
+      "price": "1.10020",
+      "calculated_margin": "11.00",
+      "success": true,
+      "error_code": 0,
+      "observed_at": "2026-08-31T10:00:00Z"
+    }
+  ]
+}

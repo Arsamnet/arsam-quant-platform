@@ -299,7 +299,7 @@ class BacktestEngine:
     ) -> dict[str, SymbolSpecification]:
         if len(dataset.metadata.symbols) != 1:
             raise BacktestConfigurationError(
-                "version 0.3.0 backtest runs require exactly one symbol"
+                "version 0.4.0 backtest runs require exactly one symbol"
             )
         specifications: dict[str, SymbolSpecification] = {}
         for symbol in dataset.metadata.symbols:

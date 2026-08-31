@@ -1,7 +1,11 @@
 # Demo Deployment Runbook
 
-Demo broker execution is **not implemented or authorized in 0.3.0**. This runbook is an approval
+Demo broker execution is **not implemented or authorized in 0.4.0**. This runbook is an approval
 gate, not deployment instructions.
+
+The 0.4.0 read-only metadata probe and offline validation reports are prerequisites for future
+calibration evidence, not authorization. Real FIBOGroup metadata has not yet been captured or
+validated, and the probe has not yet been compiled in MetaEditor.
 
 Before introducing `demo`: complete deterministic out-of-sample testing, validate static symbol
 metadata and currency-risk calculations against broker contract data, add durable PostgreSQL

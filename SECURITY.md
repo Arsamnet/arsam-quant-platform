@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Version 0.3.x receives security fixes during bootstrap. It is paper-only and must not be used for
+Version 0.4.x receives security fixes during bootstrap. It is paper-only and must not be used for
 real-money or broker-demo execution.
 
 ## Reporting
@@ -24,6 +24,11 @@ Preserve logs and timestamps without copying secrets.
 - Run locked dependency installation and `pip-audit`; review lock updates rather than auto-merging.
 - Treat historical CSV as untrusted input: validate strict schema/UTC/order/finite decimals, never
   deserialize pickle, and never let a backtest access a broker, network, external AI, or live mode.
+- Treat MT5 snapshot files as untrusted: enforce bounded strict schema/Decimal/UTC parsing, compare
+  hashes against separately trusted values, reject stale/unknown evidence, and never archive raw
+  account logins or credentials.
+- Keep the MQL5 metadata probe read-only; the forbidden-API scan supplements but does not replace
+  human review and actual MetaEditor compilation.
 
 See [threat-model.md](docs/security/threat-model.md),
 [windows-server-hardening.md](docs/runbooks/windows-server-hardening.md), and

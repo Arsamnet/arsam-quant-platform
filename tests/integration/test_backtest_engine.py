@@ -37,7 +37,7 @@ def test_golden_backtest_is_byte_reproducible_with_exact_accounting() -> None:
     assert first.metadata.dataset.checksum == (
         "42ef6f69d7ab7dd1febb1b2d392410365eb8d90dfb756d9c86ef41a9b0b7d1ac"
     )
-    assert str(first.metadata.run_id) == "08346388-cafc-5533-8f06-81f7b7030913"
+    assert str(first.metadata.run_id) == "39b70bff-fbde-561a-abeb-cbe50e59af64"
     assert first.metadata.strategy.parameter_hash == (
         "f5040644b5f7241a7ba484463d5a63c1b00d6b948ad8464529393334b58424fa"
     )
@@ -55,7 +55,7 @@ def test_golden_backtest_is_byte_reproducible_with_exact_accounting() -> None:
     assert first.report.profit_factor == Decimal(0)
     assert first.report.payoff_ratio is None
     trade = first.trades[0]
-    assert str(trade.trade_id) == "bb02fe78-9918-571e-be4d-c1819dda5607"
+    assert str(trade.trade_id) == "807c8715-7bd8-5c91-8dc7-eaae5635643e"
     assert trade.exit_reason is ExitReason.STOP_LOSS
     assert trade.executed_entry_price == Decimal("1.10121")
     assert trade.exit_price == Decimal("1.10019")

@@ -23,7 +23,14 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Availability failure | New trades fail closed | Independent safe management of open positions |
 | Malformed/poisoned historical data | Strict CSV, UTC, OHLC, duplicate/order, finite-value validation | Signed/provenance-verified market datasets |
 | Look-ahead or result tampering | Streaming information boundary; canonical SHA-256 identities | Independent artifact signing and external replication |
+| Malicious/tampered MT5 snapshot | Bounded strict schema, duplicate/extra-field rejection, Decimal/UTC validation, optional trusted full-hash comparison | Signed capture/archive chain and operator identity |
+| Stale/replayed broker metadata | Explicit acquisition/observation times, required validation as-of, blocking freshness window, dual hashes | Automated trusted capture attestation |
+| Wrong terminal/account | Server/company/build, account currency/trade/position modes and permissions in validation | Approved pseudonymous account binding and operator sign-off |
+| Schema downgrade/unknown broker mode | Exact schema/safety marker and fail-closed unknown enums/bits/calculation modes | Signed schema policy distribution |
+| Forged calibration report | Canonical report binds snapshot/contract/policy hashes and software version | Artifact signing and append-only off-host archive |
+| Accidental trade API in probe | Isolated read-only script plus lexical forbidden-API test and review | MetaEditor compile/review gate; lexical scan is not formal proof |
 
-The largest bootstrap residual risk is that no real MT5 validator, PostgreSQL recovery path, market
-data provenance, or broker reconciliation exists. Consequently broker demo/live execution is
-forbidden.
+The largest bootstrap residual risk is that the read-only probe has not been compiled in MetaEditor
+or run against the actual intended FIBOGroup demo account; artifact signing, PostgreSQL recovery,
+market-data provenance, execution validation, and broker reconciliation also remain absent.
+Consequently broker demo/live execution is forbidden.

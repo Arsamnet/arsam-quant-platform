@@ -16,6 +16,8 @@ htmlcov/
 *.egg-info/
 build/
 dist/
+var/broker-snapshots/
+var/broker-reports/
 .uv-cache/
 .idea/
 .vscode/*.local.json

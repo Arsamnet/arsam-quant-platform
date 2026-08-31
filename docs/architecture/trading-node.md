@@ -66,3 +66,8 @@ The EA must independently enforce schema/authentication, allowed symbol, maximum
 required broker-side SL/TP, spread, request expiry, request/nonce uniqueness, idempotency, and demo
 authorization before any `OrderSend`. It must capture the broker response and reconcile state. No EA
 may contain SaaS, OpenAI, news, database, or broker secrets in source code.
+
+Version 0.4.0 does not implement that future validator. It provides a separate read-only metadata
+script whose one-way file output is imported offline. Informational broker readiness cannot enable
+demo mode, create an `ExecutionIntent`, or invoke the current paper adapter. See the
+[probe guide](../brokers/mt5-read-only-probe.md).
