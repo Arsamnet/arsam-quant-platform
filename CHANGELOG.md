@@ -25,8 +25,8 @@ uses Semantic Versioning during pre-production.
 
 ### Changed
 
-- Prepare package/API version 0.4.0 without creating a tag, release, broker connection, or execution
-  capability; preserve deterministic 0.3 backtesting behavior with version-derived identities.
+- Set the package/API version to 0.4.0 while preserving deterministic 0.3 backtesting behavior,
+  version-derived identities, and the paper-only execution boundary.
 - Promote canonical JSON/fingerprint primitives to shared package infrastructure.
 - Extend constrained structured-log fields with snapshot/contract fingerprints and validation status.
 
