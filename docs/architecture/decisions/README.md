@@ -18,6 +18,12 @@ the original rationale. File names use `ADR-NNNN-short-title.md`.
 - [ADR-0013: Next-bar-open execution](ADR-0013-next-bar-open-execution.md)
 - [ADR-0014: Explicit deterministic transaction costs](ADR-0014-explicit-transaction-costs.md)
 - [ADR-0015: Adverse resolution of intra-bar ambiguity](ADR-0015-adverse-intrabar-ambiguity.md)
+- [ADR-0016: Read-only MT5 metadata boundary](ADR-0016-read-only-mt5-metadata-boundary.md)
+- [ADR-0017: Canonical broker contract snapshot](ADR-0017-canonical-broker-contract-snapshot.md)
+- [ADR-0018: Broker contract and snapshot fingerprints](ADR-0018-broker-contract-and-snapshot-fingerprints.md)
+- [ADR-0019: Blocking broker validation policy](ADR-0019-blocking-broker-validation-policy.md)
+- [ADR-0020: Read-only MT5 calculation calibration](ADR-0020-read-only-mt5-calculation-calibration.md)
+- [ADR-0021: Cross-platform MT5 validation](ADR-0021-cross-platform-mt5-validation.md)
 
 ## Template
 

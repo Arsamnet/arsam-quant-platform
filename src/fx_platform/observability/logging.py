@@ -23,6 +23,10 @@ class JsonFormatter(logging.Formatter):
         "execution_id",
         "trade_id",
         "node_id",
+        "snapshot_fingerprint",
+        "contract_fingerprint",
+        "validation_symbol",
+        "validation_status",
     )
 
     def format(self, record: logging.LogRecord) -> str:

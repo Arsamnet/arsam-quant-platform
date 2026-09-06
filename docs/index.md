@@ -18,6 +18,13 @@ same change.
 - [Glossary](domain/glossary.md)
 - [Risk model](domain/risk-model.md)
 
+## Broker validation
+
+- [MT5 metadata contract](brokers/mt5-metadata-contract.md)
+- [MT5 validation policy and CLI](brokers/mt5-validation.md)
+- [Read-only MQL5 probe](brokers/mt5-read-only-probe.md)
+- [Calibration methodology](brokers/calibration-methodology.md)
+
 ## Assurance
 
 - [AI policy](ai/ai-policy.md) and [prompt security](ai/prompt-security.md)

@@ -23,7 +23,14 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Availability failure | New trades fail closed | Independent safe management of open positions |
 | Malformed/poisoned historical data | Strict CSV, UTC, OHLC, duplicate/order, finite-value validation | Signed/provenance-verified market datasets |
 | Look-ahead or result tampering | Streaming information boundary; canonical SHA-256 identities | Independent artifact signing and external replication |
+| Malicious/tampered MT5 snapshot | Bounded strict schema, duplicate/extra-field rejection, Decimal/UTC validation, optional trusted full-hash comparison | Signed capture/archive chain and operator identity |
+| Stale/replayed broker metadata | Explicit acquisition/observation times, required validation as-of, blocking freshness window, dual hashes | Automated trusted capture attestation |
+| Wrong terminal/account | Server/company/build, account currency/trade/position modes and permissions in validation | Approved pseudonymous account binding and operator sign-off |
+| Schema downgrade/unknown broker mode | Exact schema/safety marker and fail-closed unknown enums/bits/calculation modes | Signed schema policy distribution |
+| Forged calibration report | Canonical report binds snapshot/contract/policy hashes and software version | Artifact signing and append-only off-host archive |
+| Accidental trade API in probe | Isolated read-only script, lexical forbidden-API test, human review, and independently completed MetaEditor compile gate | Independent execution-boundary review; lexical scan is not formal proof |
 
-The largest bootstrap residual risk is that no real MT5 validator, PostgreSQL recovery path, market
-data provenance, or broker reconciliation exists. Consequently broker demo/live execution is
-forbidden.
+The read-only probe was independently compiled in MetaEditor and run against the intended FIBOGroup
+demo configuration for 0.4.0. Artifact signing, PostgreSQL recovery, market-data provenance,
+execution validation, broker reconciliation, explicit USDJPY directed-conversion calibration, and
+full margin semantics remain absent. Consequently broker demo/live execution is forbidden.

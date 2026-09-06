@@ -6,11 +6,14 @@
 3. **0.3 deterministic backtest (complete):** event-driven engine, point-in-time data fixture,
    Bid/Ask spread,
    commission/slippage assumptions, reproducible snapshot/version/seed, and out-of-sample split.
-4. **Recommended next—broker contract validation:** verify symbol metadata and currency risk against
-   MT5 demo data,
-   add position state,
-   signed localhost intent polling, reviewed MQL5 validator, and real MetaEditor compilation.
-5. **Demo validation:** explicit demo mode only after operational approval, fault injection,
+4. **0.4 read-only broker contract validation (complete):** strict offline MT5 metadata
+   schema/import, canonical snapshots, dual fingerprints/diff, guarded symbol mapping, severity-rich
+   validation, calculation calibration foundation, read-only probe, safety scan, synthetic tests,
+   independent Windows MetaEditor compilation, and repeated real FIBOGroup demo calibration for
+   EURUSD/GBPUSD/USDJPY. No execution.
+5. **Later milestone—demo validation:** add position state and signed localhost intent polling only
+   after the independent security, runtime-isolation, reconciliation, and approval gates are complete,
+   then explicit demo mode after operational approval, fault injection,
    reconciliation, and kill-switch runbooks. Live remains disabled.
 6. **Research expansion:** economic calendar fixture/provider, news classification isolation,
    walk-forward/Monte Carlo evaluation, and versioned AI assessment datasets.

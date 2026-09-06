@@ -63,3 +63,9 @@ Changing a limit default or weakening a rule requires explicit product/risk appr
 amendment, property tests at the boundary, regression coverage, and documentation of operational
 migration. Static metadata and account-currency calculations must be validated against broker demo
 contract metadata and hand reconciliations before any broker execution is authorized.
+
+Version 0.4.0 provides a separate offline read-only mapper for supported, fully validated FX broker
+snapshots. It does not replace the runtime static provider automatically and does not weaken any
+RiskEngine check. Mapping rejects unsupported calculation/trade modes, missing or non-positive
+grids, asymmetric tick values, and incompatible currencies. Future composition of broker-derived
+specifications requires a separately reviewed startup-readiness gate.

@@ -22,7 +22,7 @@ Request/node/symbol validation -> SymbolSpecification -> Deterministic Strategy
 ```
 
 Risk can reject every candidate regardless of AI output. MQL5 will be an independent last-line
-guard; version 0.3.0 includes no order-sending MQL5 code. The current API, fake executor, and audit
+guard; version 0.4.0 includes no order-sending MQL5 code. The current API, fake executor, and audit
 repository run within one loopback-only trading node.
 
 Version 0.3.0 adds an outer `fx_platform.backtesting` composition. It streams immutable historical
@@ -45,9 +45,21 @@ No complete dataset or future-aware collection crosses the strategy boundary. De
 Bid/Ask, cost, and ambiguity semantics are in
 [the backtesting methodology](docs/backtesting/methodology.md).
 
-The bootstrap uses reviewed static `SymbolSpecification` values. The domain and application depend
-only on a metadata-provider protocol, so a future MT5 adapter may populate the same model after its
-contract data is independently verified. No MT5 connection exists in this version.
+Version 0.4.0 adds an independent offline calibration flow. A terminal-side read-only MQL5 script
+exports strict schema-1.0 metadata and hypothetical calculation evidence. Python parses it into
+immutable canonical broker/account/terminal/symbol snapshots, computes full and contract hashes,
+maps only supported FX facts to `SymbolSpecification`, and emits deterministic severity-rich
+reports. This outer package does not enter domain dependencies or historical backtest data flow.
+
+```text
+MT5 read-only script -> untrusted JSON -> strict Decimal/UTC parser
+                                      -> canonical snapshot -> archive/fingerprints/diff
+                                                            -> validation report
+                                                            -> guarded SymbolSpecification mapping
+```
+
+There is no Python-to-terminal runtime connection and no path from informational readiness to an
+execution adapter. The bootstrap runtime continues using reviewed static specifications.
 
 Detailed views and decisions:
 

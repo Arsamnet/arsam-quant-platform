@@ -17,3 +17,12 @@
 - **SimulatedPosition:** reproducible paper position filled by the no-network backtest broker.
 - **TradeRecord:** immutable closed-trade ledger with gross P/L and separated costs.
 - **BacktestResult:** canonical run identity, report, ledger, open positions, and audit sequence.
+- **BrokerContractSnapshot:** immutable broker/account/terminal/symbol evidence imported from the
+  versioned read-only MT5 metadata contract; contains no credentials or raw login.
+- **BrokerSymbolSnapshot:** canonical static and dynamic symbol metadata with Decimal financial values,
+  explicit MT5 modes/unknown bits, and an aware UTC observation time.
+- **SnapshotFingerprint:** SHA-256 of complete canonical broker evidence, including dynamic values.
+- **ContractFingerprint:** SHA-256 of contract/calculation metadata excluding quotes and other
+  deliberately dynamic observations.
+- **BrokerValidationReport:** deterministic ordered PASS/INFO/WARNING/BLOCKING comparison artifact.
+- **BrokerReadiness:** informational ready/not-ready/unknown result that cannot authorize execution.

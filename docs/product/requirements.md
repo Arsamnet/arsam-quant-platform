@@ -23,4 +23,5 @@ isolated trading nodes. Performance-sensitive tick handling must never block on 
 
 Profit claims, strategy optimization, live trading, demo `OrderSend`, billing, licensing,
 multi-tenancy, Redis, paid market/news integrations, optimization, tick replay, broker-calibrated
-fills, and comprehensive monitoring are not part of version 0.3.0.
+fills, and comprehensive monitoring are not part of version 0.4.0. Version 0.4.0 adds only offline,
+read-only broker metadata and hypothetical calculation validation; it does not add demo execution.

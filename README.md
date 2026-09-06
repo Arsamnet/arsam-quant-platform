@@ -1,8 +1,9 @@
 # Arsam Quant Platform
 
 A production-oriented engineering foundation for a measurable, reproducible, risk-controlled,
-AI-assisted FX platform. Version **0.3.0** adds deterministic event-driven historical simulation
-while remaining paper-only: it contains no MT5 order code, broker connection, or live-trading path.
+AI-assisted FX platform. Version **0.4.0** adds offline, read-only MT5 broker-contract validation
+while remaining paper-only: it contains no MT5 order submission, broker execution connection, or
+live-trading path.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
 statistical edge.
@@ -20,6 +21,11 @@ statistical edge.
 - Backtests stream validated UTC bars, use a monotonic historical clock, and expose no future bars.
 - Next-bar Bid/Ask fills, spread, commission, slippage, SL/TP, and adverse ambiguity are explicit.
 - Dataset, strategy, risk, execution, run, trade, and report identities are reproducible.
+- Read-only MT5 exports normalize to immutable Decimal/UTC broker snapshots with separate full and
+  contract SHA-256 fingerprints.
+- Broker validation reports PASS/INFO/WARNING/BLOCKING checks and cannot enable demo or live mode.
+- The MQL5 metadata probe is automatically scanned for forbidden trade APIs and was independently
+  compiled in Windows MetaEditor with `0 errors, 0 warnings` before real read-only FIBOGroup capture.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), and
 [docs/index.md](docs/index.md) before extending the system.
@@ -87,6 +93,32 @@ JSON. It performs no network, database, MT5, broker, or external-AI operation. S
 [execution model](docs/backtesting/execution-model.md), and
 [reproducibility contract](docs/backtesting/reproducibility.md).
 
+## Offline MT5 broker validation
+
+Import the clearly synthetic fixture without MT5, Windows, credentials, or network access:
+
+```text
+uv run fx-mt5-import \
+  --input tests/fixtures/broker_validation/synthetic_eurusd_valid.json \
+  --output /tmp/mt5-snapshot.json
+
+uv run fx-broker-validate \
+  --snapshot /tmp/mt5-snapshot.json \
+  --symbol EURUSD \
+  --as-of 2026-08-31T10:00:00Z \
+  --expected-broker-company "SYNTHETIC TEST BROKER - NOT FIBOGROUP DATA" \
+  --expected-broker-server "SYNTHETIC-DEMO - NOT BROKER CALIBRATED" \
+  --output /tmp/mt5-validation.json
+```
+
+Validation requires an explicit aware `--as-of`; malformed input or a blocking mismatch returns
+nonzero. `fx-broker-diff` classifies contract changes separately from quotes and other observations.
+Actual account snapshots are ignored under `var/broker-snapshots/` and must never be committed.
+See the [metadata contract](docs/brokers/mt5-metadata-contract.md),
+[validation policy](docs/brokers/mt5-validation.md),
+[probe guide](docs/brokers/mt5-read-only-probe.md), and
+[calibration methodology](docs/brokers/calibration-methodology.md).
+
 ## Quality commands
 
 ```text
@@ -115,7 +147,8 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The platform validates architecture and simulation reproducibility, not trading performance or
-broker accuracy. The recommended next increment is broker-contract calibration against captured MT5
-demo metadata and hand-reconciled calculations. Demo execution remains out of scope until those
-controls and an independently compiled EA are reviewed.
+The platform validates architecture, simulation reproducibility, and an offline broker-calibration
+workflow—not trading performance or universal broker equivalence. Real read-only FIBOGroup demo
+calibration for EURUSD, GBPUSD, and USDJPY, including repeated contract-drift validation, is complete
+for 0.4.0. Demo execution remains unavailable and out of scope until separate security, operational,
+execution-guard, reconciliation, and approval gates are complete.
