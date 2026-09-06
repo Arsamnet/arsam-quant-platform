@@ -21,7 +21,7 @@ Dependencies point inward: `domain` <- `application` <- `adapters`/`api`.
 - `src/fx_platform/application`: orchestration and boundary protocols
 - `src/fx_platform/adapters`: external-system implementations
 - `src/fx_platform/api`: local versioned HTTP contract
-- `mt5`: last-line execution guard (currently contract documentation only)
+- `mt5`: read-only metadata probe/validation boundary and future last-line execution guard
 - `tests`: deterministic unit, integration, contract, and regression suites
 - `docs`: source of truth; begin at `docs/index.md`
 

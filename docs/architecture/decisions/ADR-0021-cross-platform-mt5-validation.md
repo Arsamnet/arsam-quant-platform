@@ -25,7 +25,7 @@ a smaller dependency and credential surface.
 ## Consequences
 
 All ordinary quality gates remain service-free. Actual probe compilation/capture is a separate
-Windows validation activity and a known release limitation until performed.
+Windows validation activity and remains a release limitation until independently performed.
 
 ## Security Impact
 
@@ -34,5 +34,6 @@ Snapshot files are still untrusted inputs and receive strict validation.
 
 ## Testing Impact
 
-Synthetic cross-platform tests run unconditionally. MetaEditor compilation and real demo capture are
-reported accurately as not yet validated rather than skipped and represented as success.
+Synthetic cross-platform tests run unconditionally. MetaEditor compilation and real demo capture
+must be reported from separate evidence rather than skipped or represented as CI success. The 0.4.0
+Windows compile gate and distinct official capture pair were completed and recorded by 2026-09-06.

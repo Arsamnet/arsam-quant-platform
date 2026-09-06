@@ -40,4 +40,6 @@ external integration tests will be opt-in and separate when those adapters exist
 The synthetic MT5 fixture is labelled not FIBOGroup data and not broker calibrated. Core tests never
 import the official MetaTrader5 package, open a network, require credentials, or skip because a
 terminal is unavailable. The lexical probe scan removes comments/strings before searching known
-forbidden executable tokens; its limits require later human review and actual MetaEditor compilation.
+forbidden executable tokens; its limits always require human review and an independent MetaEditor
+compilation release gate. That gate was completed before the official 0.4.0 broker evidence pair was
+acquired on 2026-09-06.

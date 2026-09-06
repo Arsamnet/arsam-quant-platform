@@ -5,7 +5,7 @@ uses Semantic Versioning during pre-production.
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-08-31
+## [0.4.0] - 2026-09-06
 
 ### Added
 
@@ -37,7 +37,11 @@ uses Semantic Versioning during pre-production.
 - Strictly reject duplicate/unknown/missing/malformed snapshot structure, JSON financial numbers,
   non-finite decimals, naive timestamps, unknown required capabilities, stale evidence, and trusted
   fingerprint mismatch.
-- MetaEditor compilation and actual FIBOGroup capture/calibration remain explicitly unvalidated.
+- Independently compile the read-only probe in Windows MetaEditor with `0 errors, 0 warnings`, then
+  capture and validate two real FIBOGroup demo observations for EURUSD, GBPUSD, and USDJPY with no
+  blocking findings and an unchanged contract fingerprint.
+- Keep USDJPY conversion-dependent P/L and full margin equivalence explicitly outside the 0.4.0
+  claims; the completed read-only calibration grants no demo/live execution authority.
 
 ## [0.3.0] - 2026-08-31
 

@@ -24,8 +24,8 @@ statistical edge.
 - Read-only MT5 exports normalize to immutable Decimal/UTC broker snapshots with separate full and
   contract SHA-256 fingerprints.
 - Broker validation reports PASS/INFO/WARNING/BLOCKING checks and cannot enable demo or live mode.
-- The MQL5 metadata probe is automatically scanned for forbidden trade APIs; MetaEditor compilation
-  and real FIBOGroup capture have not yet been performed.
+- The MQL5 metadata probe is automatically scanned for forbidden trade APIs and was independently
+  compiled in Windows MetaEditor with `0 errors, 0 warnings` before real read-only FIBOGroup capture.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), and
 [docs/index.md](docs/index.md) before extending the system.
@@ -148,6 +148,7 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 ## Project status and next work
 
 The platform validates architecture, simulation reproducibility, and an offline broker-calibration
-workflow—not trading performance or actual broker accuracy. The recommended next increment is real
-FIBOGroup demo metadata capture, MetaEditor compilation, and hand reconciliation. Demo execution
-remains out of scope until those controls and a separately reviewed execution guard are complete.
+workflow—not trading performance or universal broker equivalence. Real read-only FIBOGroup demo
+calibration for EURUSD, GBPUSD, and USDJPY, including repeated contract-drift validation, is complete
+for 0.4.0. Demo execution remains unavailable and out of scope until separate security, operational,
+execution-guard, reconciliation, and approval gates are complete.

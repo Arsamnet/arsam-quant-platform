@@ -28,9 +28,9 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Wrong terminal/account | Server/company/build, account currency/trade/position modes and permissions in validation | Approved pseudonymous account binding and operator sign-off |
 | Schema downgrade/unknown broker mode | Exact schema/safety marker and fail-closed unknown enums/bits/calculation modes | Signed schema policy distribution |
 | Forged calibration report | Canonical report binds snapshot/contract/policy hashes and software version | Artifact signing and append-only off-host archive |
-| Accidental trade API in probe | Isolated read-only script plus lexical forbidden-API test and review | MetaEditor compile/review gate; lexical scan is not formal proof |
+| Accidental trade API in probe | Isolated read-only script, lexical forbidden-API test, human review, and independently completed MetaEditor compile gate | Independent execution-boundary review; lexical scan is not formal proof |
 
-The largest bootstrap residual risk is that the read-only probe has not been compiled in MetaEditor
-or run against the actual intended FIBOGroup demo account; artifact signing, PostgreSQL recovery,
-market-data provenance, execution validation, and broker reconciliation also remain absent.
-Consequently broker demo/live execution is forbidden.
+The read-only probe was independently compiled in MetaEditor and run against the intended FIBOGroup
+demo configuration for 0.4.0. Artifact signing, PostgreSQL recovery, market-data provenance,
+execution validation, broker reconciliation, explicit USDJPY directed-conversion calibration, and
+full margin semantics remain absent. Consequently broker demo/live execution is forbidden.

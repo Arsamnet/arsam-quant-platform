@@ -11,7 +11,7 @@ hypothetical calibration volume. It never prompts for, reads, writes, hashes, or
 does not persist the raw account login. Broker/server/company, account currency/modes/leverage,
 terminal build/connection, and requested symbol facts are exported as audit evidence.
 
-Operator procedure on the future Windows validation node:
+Operator procedure on a Windows validation node:
 
 1. Review the exact source and its forbidden-API scan result.
 2. Open it in MetaEditor and compile it independently.
@@ -27,7 +27,11 @@ deletion/modification helpers. It is defense in depth, not a parser, compiler, c
 protection against indirect/dynamic invocation. Human source review and real MetaEditor compilation
 remain mandatory.
 
-The current development host is macOS. MetaEditor compilation has not been performed and no compile
-success is claimed. The Python importer, validator, diff, fixtures, and safety tests require neither
-Windows, the MetaTrader5 Python package, a terminal, credentials, network access, nor broker access.
-No official MetaTrader5 package was added to the project dependency graph.
+The development host remains macOS, but the probe was independently compiled on the Windows
+validation node in MetaEditor against FIBO Group MT5 build `6140` with `0 errors, 0 warnings`. It was
+then run twice inside an already authenticated FIBOGroup demo terminal on 2026-09-06 and produced
+the official distinct read-only schema-1.0 evidence pair. No order was submitted or modified.
+
+The Python importer, validator, diff, fixtures, and safety tests still require neither Windows, the
+MetaTrader5 Python package, a terminal, credentials, network access, nor broker access. No official
+MetaTrader5 package was added to the project dependency graph.

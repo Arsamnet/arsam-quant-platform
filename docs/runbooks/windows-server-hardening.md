@@ -17,7 +17,10 @@ passwords, authentication URLs, broker account numbers, or other secrets.
 > Tailscale-interface rules; the provider console is a verified break-glass path; and a SYSTEM
 > startup task has been proven to re-apply Tailscale adapter NetBIOS/file-sharing hardening after
 > every reboot. Server-side SSH password authentication and the built-in `Administrator` account
-> remain enabled pending the final access-hardening decision. MT5/broker validation has not started.
+> remain enabled pending the final access-hardening decision. The read-only MT5/FIBOGroup validation
+> gate has been completed with MT5 build `6140`, an independently compiled probe, the intended
+> demo/USD/retail-hedging/1:100 account configuration, and repeated EURUSD/GBPUSD/USDJPY evidence
+> with no blocking validation findings.
 
 ## Safety invariants
 
@@ -421,8 +424,9 @@ cleanly rather than immediately forcing the restart.
 - [ ] Final remaining listener/service review and tamper/cloud-protection review still required
   before the Windows baseline is called fully complete.
 
-The server is **not yet deployment-ready** and MT5/broker calibration must not start until the
-remaining hardening gates are reviewed.
+The server is **not yet deployment-ready for demo execution** because the remaining hardening and
+runtime-isolation gates still require review. The read-only MT5 calibration described in Phase 18
+has been completed; that evidence does not authorize broker order execution.
 
 ---
 
@@ -750,9 +754,9 @@ MaximumSizeInBytes = 268435456
 
 A baseline listener inventory identified expected Windows RPC/management/system listeners plus SSH,
 RDP, SMB-related listeners, WinRM, and Tailscale ports. WinRM, NetBIOS listeners, and the unnecessary
-Print Spooler were addressed as documented above. Before broker calibration, perform one final
-review of remaining listeners/services (including RPC-related listeners and SMB/445 behavior) and
-map every unexpected listener to an approved need.
+Print Spooler were addressed as documented above. Before demo execution/deployment, perform one
+final review of remaining listeners/services (including RPC-related listeners and SMB/445 behavior)
+and map every unexpected listener to an approved need.
 
 ### Phase 15 completion checklist
 
@@ -780,8 +784,8 @@ map every unexpected listener to an approved need.
 - [ ] Complete Phase 14 SSH server-side password-authentication decision.
 
 Any unexpected listener, disabled security protection, failed time synchronization, residual public
-administrative exposure, failed startup hardening task, or account-policy regression blocks broker
-calibration and deployment progression.
+administrative exposure, failed startup hardening task, or account-policy regression blocks demo
+execution/deployment progression until reviewed.
 
 ---
 
@@ -828,24 +832,93 @@ exact current commit before broker validation rather than assuming this SHA rema
 
 ## Phase 18 — MT5/FIBOGroup read-only calibration gate
 
-Only after the preceding security phases are complete:
+The official read-only validation pair was completed on 2026-09-06. This does not mark the
+preceding deployment/runtime phases complete: the Windows terminal performed the independent MQL5
+compile and broker-side read-only capture, while the intentionally offline Python import,
+validation, diff, and repository quality checks were performed on the development host.
 
-- [ ] Install the intended FIBOGroup MT5 terminal from an authenticated source.
-- [ ] Use the intended **demo hedging** account; do not use live credentials.
-- [ ] Open `ReadOnlyMetadataProbe.mq5` in MetaEditor.
-- [ ] Compile independently and require `0 errors, 0 warnings` or explicitly review every warning.
-- [ ] Run the probe only after source review confirms no trading/mutation API.
-- [ ] Capture actual broker metadata for the explicitly reviewed symbols.
-- [ ] Keep raw real broker snapshots out of Git.
-- [ ] Run `fx-mt5-import` and `fx-broker-validate` offline.
-- [ ] Reconcile `OrderCalcProfit` evidence for EURUSD and GBPUSD.
-- [ ] For USDJPY/USD account calibration, require explicit directed currency-conversion evidence;
-  never claim P/L equivalence without it.
-- [ ] Archive fingerprints, terminal build, code commit, validation report, and operator evidence.
-- [ ] Keep version 0.4.0 read-only; no `OrderSend` path is permitted.
+- [x] Install the intended FIBOGroup MT5 terminal from an authenticated source.
+- [x] Use the intended **demo hedging** account; no live credentials were used.
+- [x] Confirm account currency `USD` and leverage `1:100`.
+- [x] Open `ReadOnlyMetadataProbe.mq5` in MetaEditor.
+- [x] Compile independently with `0 errors, 0 warnings`.
+- [x] Run the reviewed read-only probe without any trading/mutation API.
+- [x] Capture actual broker metadata for EURUSD, GBPUSD, and USDJPY.
+- [x] Keep raw and canonical real broker snapshots/reports out of Git.
+- [x] Run `fx-mt5-import` and `fx-broker-validate` offline.
+- [x] Reconcile supported EURUSD and GBPUSD `OrderCalcProfit` evidence.
+- [x] Preserve USDJPY as explicitly conversion-dependent; do not claim P/L equivalence without a
+  separately reviewed directed currency-conversion calibration.
+- [x] Acquire a second snapshot and run `fx-broker-diff`.
+- [x] Re-import both distinct raw exports and byte-compare each result with its canonical snapshot.
+- [x] Record safe fingerprints, terminal build, validation outcomes, and operator evidence.
+- [x] Keep version 0.4.0 read-only; no `OrderSend` path is permitted.
 
-Do not merge/tag/release v0.4.0 merely because Python-side validation passed on macOS. Windows
-MetaEditor compilation and real broker read-only evidence remain release gates.
+Validated terminal/broker context:
+
+```text
+terminal              FIBO Group MT5
+terminal_build        6140
+broker_company        FIBO Group, Ltd
+broker_server         FIBOGroup-MT5 Server
+account_trade_mode    demo
+account_currency      USD
+position_mode         retail hedging
+leverage              1:100
+symbols               EURUSD, GBPUSD, USDJPY
+MetaEditor compile    0 errors, 0 warnings
+```
+
+First snapshot, acquired at `2026-09-06T04:07:05Z`:
+
+```text
+snapshot_fingerprint =
+cf6ac34433a8395843dd09feafa2814ed35771ce11c0926b1d092773e5938cc9
+
+contract_fingerprint =
+b4d54d0eba373156d577706d9eee4809d19703d5fa6a5179b493f25a52625569
+```
+
+Second snapshot, acquired at `2026-09-06T04:09:47Z`:
+
+```text
+snapshot_fingerprint =
+cf818411849ef4ad59a8f16c10898c5abb194119a23bcf566e6c74b035a31d09
+
+contract_fingerprint =
+b4d54d0eba373156d577706d9eee4809d19703d5fa6a5179b493f25a52625569
+```
+
+The contract diff result was:
+
+```text
+contract_changed=false
+contract_changes=0
+dynamic_changes=14
+```
+
+Both snapshots validated with `readiness=ready`, `blocking=0`, and exit code `0` for EURUSD,
+GBPUSD, and USDJPY. EURUSD and GBPUSD each retained one non-blocking `spread_consistency` warning.
+USDJPY retained that warning plus non-blocking `tick_value`, `tick_value_profit`, and
+`tick_value_loss` warnings. Reported spread points did not exactly match Ask minus Bid in the same
+observations, while the dynamic tick values differed from static platform expectations. Its
+JPY-to-USD P/L equivalence remains deliberately unclaimed until explicit directed conversion
+calibration is reviewed; the two observations do not prove universal broker equivalence. The
+archived read-only margin observations appear consistent with `1:100`, but 0.4.0 makes no full
+margin broker-equivalence or RiskEngine claim.
+
+The repository quality gate after calibration completed with:
+
+```text
+328 tests passed
+total coverage 97.06%
+ruff format/check passed
+mypy passed
+pre-commit passed
+```
+
+No broker order was sent. These results satisfy the Windows compile and real broker read-only
+evidence gate for version 0.4.0; they do not authorize demo or live execution.
 
 ---
 
@@ -865,7 +938,7 @@ A future demo deployment is blocked by any of the following:
 - secrets committed to Git or stored with broad ACLs;
 - application services bound publicly;
 - broker-calibration evidence missing or stale;
-- MT5 probe not compiled/reviewed;
+- completed MT5 probe compile/review evidence missing, stale, or not retained;
 - any accidental demo/live order-execution capability introduced into milestone 0.4.0.
 
 Treat unexpected infrastructure state as a fail-closed condition, not as permission to continue.
