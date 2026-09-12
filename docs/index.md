@@ -17,6 +17,9 @@ same change.
 - [ADRs](architecture/decisions/README.md)
 - [Glossary](domain/glossary.md)
 - [Risk model](domain/risk-model.md)
+- [Demo execution contract](execution/demo-execution-contract.md)
+- [MQL5 execution guard](execution/mql5-execution-guard.md)
+- [Execution reconciliation](execution/reconciliation.md)
 
 ## Broker validation
 

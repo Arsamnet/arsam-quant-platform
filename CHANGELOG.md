@@ -5,6 +5,38 @@ uses Semantic Versioning during pre-production.
 
 ## [Unreleased]
 
+### Added
+
+- Immutable schema-1.0 execution intents/results with request/risk fingerprints, market-only order
+  type, exact decimal strings, UTC times, strategy/risk identities, and explicit reconciliation.
+- Atomic synchronized SQLite DEMO outbox with durable execution/intent/request/nonce/fingerprint
+  uniqueness, claim-once delivery, strict result transitions, restart persistence, and fail-closed
+  unresolved-state blocking.
+- Authenticated loopback-only demo next/result/reconcile/status endpoints and non-secret node status.
+- Default-off `ArsamDemoExecutionGuard.mq5`, the sole reviewed trade boundary, with fixed FIBOGroup
+  DEMO identity, 0.01 lot/one-position caps, required broker SL/TP, spread/grid/stops/freeze/margin/
+  `OrderCheck` gates, FILE_COMMON journal, magic/comment correlation, and no automatic retry.
+- Windows interactive deployment/start/check/install scripts, ADR-0022, execution/reconciliation
+  documentation, first-trade/negative/replay/kill/restart runbook, and comprehensive tests.
+
+### Changed
+
+- Prepare development version 0.5.0 while preserving paper behavior and deterministic backtests.
+- Permit `demo` startup only with explicit enablement, exact reviewed identity/limits, a 32+
+  character environment-owned secret, and loopback binding; continue rejecting `live` startup.
+- Require take profit in demo risk policy and use 0.01 lot / one position application limits.
+- Scope the MQL5 forbidden-trade scan so every component except the reviewed guard remains read-only
+  and exactly one production-code `OrderSend` call exists.
+
+### Security
+
+- Add independent Python and MQL5 live-account barriers, independent default-off kill switches, and
+  constant-time Python token verification without logging headers, secrets, or account login.
+- Treat unknown, failed, claimed, submitted, filled, and partial reconciliation as blocking; compare
+  reported symbol/side/volume/price/SL/TP against the claimed intent and reject overfills/conflicts.
+- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready. MetaEditor
+  compile and controlled EURUSD/GBPUSD/USDJPY DEMO evidence remain release blockers.
+
 ## [0.4.0] - 2026-09-06
 
 ### Added

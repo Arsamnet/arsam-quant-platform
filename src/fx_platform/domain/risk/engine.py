@@ -48,7 +48,7 @@ class RiskEngine:
         require_utc(evaluated_at, "evaluated_at")
         reasons: list[RiskRejection] = []
 
-        if trading_mode is not TradingMode.PAPER:
+        if trading_mode is TradingMode.LIVE:
             reasons.append(RiskRejection.NON_PAPER_MODE)
         valid_specification = self._check_symbol_and_spread(
             reasons,
@@ -208,6 +208,13 @@ class RiskEngine:
             signal.side is TradeSide.SELL and signal.stop_loss <= signal.entry_price
         ):
             reasons.append(RiskRejection.INVALID_STOP_LOSS)
+        if self._limits.require_take_profit:
+            if signal.take_profit is None:
+                reasons.append(RiskRejection.MISSING_TAKE_PROFIT)
+            elif (signal.side is TradeSide.BUY and signal.take_profit <= signal.entry_price) or (
+                signal.side is TradeSide.SELL and signal.take_profit >= signal.entry_price
+            ):
+                reasons.append(RiskRejection.INVALID_TAKE_PROFIT)
 
     def _check_ai(
         self,

@@ -17,6 +17,7 @@ class DecisionOutcomeStatus(StrEnum):
     RISK_REJECTED = "risk_rejected"
     EXECUTION_REJECTED = "execution_rejected"
     PAPER_EXECUTED = "paper_executed"
+    DEMO_QUEUED = "demo_queued"
     DUPLICATE = "duplicate"
 
 
@@ -25,6 +26,7 @@ class AuditStage(StrEnum):
 
     REJECTED = "rejected"
     INTENT_CREATED = "intent_created"
+    OUTBOXED = "outboxed"
     COMPLETED = "completed"
 
 

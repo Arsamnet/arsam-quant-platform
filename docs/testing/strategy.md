@@ -20,6 +20,11 @@ at external boundaries. A regression test accompanies each corrected safety defe
   severities/readiness, and forbidden MQL5 API scanning
 - broker-validation integration: offline import/validation/diff CLI success, canonical bytes,
   malformed input, trusted-hash failure, and blocking exit codes
+- demo execution: locked startup identity, live rejection, SL/TP/volume/grid/spread/position gates,
+  authenticated strict contracts, atomic outbox replay keys, crash/restart blocking, transition and
+  reconciliation uncertainty, and result/intent fact matching
+- MQL5 static safety: trade APIs remain forbidden outside the one explicitly reviewed guard and
+  that guard contains exactly one `OrderSend` call
 
 Overall branch coverage must be at least 85%. Risk/core financial logic targets at least 95% where
 practical. Coverage is evidence, not the objective: boundary values, invalid state, stale/future
@@ -43,3 +48,7 @@ terminal is unavailable. The lexical probe scan removes comments/strings before 
 forbidden executable tokens; its limits always require human review and an independent MetaEditor
 compilation release gate. That gate was completed before the official 0.4.0 broker evidence pair was
 acquired on 2026-09-06.
+
+The separate 0.5.0 execution EA compile gate is not complete until the Windows operator provides
+MetaEditor output showing `0 errors, 0 warnings`. Real broker tests are manual, DEMO-only, ordered
+EURUSD then GBPUSD then conversion-gated USDJPY, and never run in CI.

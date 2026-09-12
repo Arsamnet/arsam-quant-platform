@@ -329,7 +329,7 @@ def test_service_constructor_rejects_live_mode_and_empty_node() -> None:
         "executor": executor,
         "audit_repository": InMemoryAuditRepository(),
     }
-    with pytest.raises(ValueError, match="paper"):
+    with pytest.raises(ValueError, match="live"):
         DecisionService(node_id="paper-node", trading_mode=TradingMode.LIVE, **common)
     with pytest.raises(ValueError, match="node_id"):
         DecisionService(node_id="", trading_mode=TradingMode.PAPER, **common)

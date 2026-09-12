@@ -8,7 +8,7 @@ overridden by strategy or AI output.
 
 ## Bootstrap assumptions
 
-- Trading mode is paper only.
+- Trading mode is paper, or explicitly configured guarded demo. Live always rejects.
 - Supported symbols and their reviewed static specifications are configured explicitly.
 - `SymbolSpecification` holds the symbol currencies, contract size, tick size/value semantics,
   volume grid, price digits, and maximum spread in ticks without depending on MT5.
@@ -39,6 +39,11 @@ excludes commissions, slippage, swap, dynamic tick values, portfolio correlation
 calculation modes. The backtest ledger models deterministic commission/slippage separately; demo
 execution still requires comparison against real MT5 symbol metadata and broker results.
 
+The demo composition overrides exposure to exactly `max_volume = 0.01`,
+`max_open_positions = 1`, and requires both directional stop loss and take profit. The EA repeats
+these constraints against current broker symbol/account state. USDJPY remains blocked without the
+fresh directed conversion used by current risk semantics.
+
 ## Fail-closed rule order
 
 The engine evaluates all available deterministic rules to produce an auditable set of rejection
@@ -68,4 +73,6 @@ Version 0.4.0 provides a separate offline read-only mapper for supported, fully 
 snapshots. It does not replace the runtime static provider automatically and does not weaken any
 RiskEngine check. Mapping rejects unsupported calculation/trade modes, missing or non-positive
 grids, asymmetric tick values, and incompatible currencies. Future composition of broker-derived
-specifications requires a separately reviewed startup-readiness gate.
+specifications requires a separately reviewed startup-readiness gate. Version 0.5.0 does not claim
+universal margin equivalence: MT5 `OrderCalcMargin` and `OrderCheck` remain authoritative final
+preflight checks.

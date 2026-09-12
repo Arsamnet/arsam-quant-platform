@@ -4,6 +4,7 @@ from threading import Lock
 from uuid import UUID
 
 from fx_platform.application.ports import Clock
+from fx_platform.domain.common import TradingMode
 from fx_platform.domain.execution import ExecutionIntent, ExecutionResult, ExecutionStatus
 
 
@@ -31,6 +32,13 @@ class FakeExecutionAdapter:
                     completed_at=now,
                     status=ExecutionStatus.DUPLICATE,
                     message="duplicate paper execution suppressed",
+                )
+            if intent.trading_mode is not TradingMode.PAPER:
+                return ExecutionResult(
+                    execution_id=intent.execution_id,
+                    completed_at=now,
+                    status=ExecutionStatus.REJECTED,
+                    message="paper adapter rejects non-paper intent",
                 )
             if now >= intent.expires_at:
                 return ExecutionResult(

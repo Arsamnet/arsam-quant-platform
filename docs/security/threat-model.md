@@ -12,10 +12,10 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Threat | Bootstrap controls | Residual/future work |
 |---|---|---|
 | Public API exposure | Loopback-only validation; firewall guidance | Service identity and mTLS if boundary changes |
-| Forged/replayed intent | Optional raw-body HMAC; UUID/nonce uniqueness; expiry | Durable distributed replay store; key rotation |
+| Forged/replayed intent | Optional decision HMAC; authenticated demo polling; durable UUID/nonce/fingerprint uniqueness; expiry; EA journal | Process identity/mTLS if transport leaves loopback; key rotation |
 | Unsafe/compromised AI | Strict schema; advisory-only; risk after AI | Provider isolation, budgets, red-team suite |
 | Prompt injection from news | External text excluded from authority and bootstrap payload | Classifier sandbox and adversarial fixtures |
-| Risk bypass | Deterministic fail-closed rules; immutable decision; no intent after rejection | Independent MQL5 validation and signed policy |
+| Risk bypass | Deterministic rules; immutable approved-only intent; independent fixed MQL5 guard | Signed policy distribution |
 | Credential disclosure | `.env` ignored; secret types; constrained logs; no EA secrets | Windows secret store and rotation automation |
 | Dependency/supply-chain compromise | `uv.lock`, minimal dependencies, CI audit, pinned action majors | Provenance/SBOM/signing and hash policy review |
 | Database loss/tamper | Versioned migration and audit model | PostgreSQL roles, encryption, backups, append-only history |
@@ -29,8 +29,12 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Schema downgrade/unknown broker mode | Exact schema/safety marker and fail-closed unknown enums/bits/calculation modes | Signed schema policy distribution |
 | Forged calibration report | Canonical report binds snapshot/contract/policy hashes and software version | Artifact signing and append-only off-host archive |
 | Accidental trade API in probe | Isolated read-only script, lexical forbidden-API test, human review, and independently completed MetaEditor compile gate | Independent execution-boundary review; lexical scan is not formal proof |
+| Live/wrong-account execution | Python rejects live startup; EA unconditionally requires DEMO plus exact company/server/currency/mode/leverage | Formal review and Windows evidence |
+| Duplicate after crash | Atomic outbox claim, pre-send FILE_COMMON journal, magic/comment history reconciliation, no automatic retry | Operator recovery tooling and off-host audit |
+| Malicious localhost process | Loopback binding and environment-owned bearer token | OS/service isolation and stronger process identity are deferred |
 
 The read-only probe was independently compiled in MetaEditor and run against the intended FIBOGroup
-demo configuration for 0.4.0. Artifact signing, PostgreSQL recovery, market-data provenance,
-execution validation, broker reconciliation, explicit USDJPY directed-conversion calibration, and
-full margin semantics remain absent. Consequently broker demo/live execution is forbidden.
+demo configuration for 0.4.0. The 0.5.0 guard implements demo execution validation and reconciliation,
+but artifact signing, PostgreSQL recovery, stronger process identity, its MetaEditor compile,
+and controlled EURUSD/GBPUSD/USDJPY broker evidence remain pending. Full Windows hardening is
+deferred. Live execution remains forbidden and the node is not production-ready.

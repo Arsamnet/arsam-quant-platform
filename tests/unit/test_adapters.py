@@ -13,7 +13,7 @@ from fx_platform.adapters.persistence import InMemoryAuditRepository
 from fx_platform.application.models import AuditStage, DecisionAuditRecord
 from fx_platform.domain.advisory import AiAssessmentStatus
 from fx_platform.domain.common import TradeSide, TradingMode
-from fx_platform.domain.execution import ExecutionIntent, ExecutionStatus
+from fx_platform.domain.execution import ExecutionIntent, ExecutionStatus, OrderType
 from tests.helpers import (
     ASSESSMENT_ID,
     NOW,
@@ -141,8 +141,10 @@ def test_null_calendar_is_explicitly_unavailable() -> None:
 
 def _intent() -> ExecutionIntent:
     return ExecutionIntent(
+        schema_version="1.0",
         execution_id=uuid4(),
-        decision_id=REQUEST_ID,
+        intent_id=uuid4(),
+        request_id=REQUEST_ID,
         signal_id=SIGNAL_ID,
         risk_decision_id=uuid4(),
         created_at=NOW,
@@ -150,10 +152,17 @@ def _intent() -> ExecutionIntent:
         node_id="paper-node",
         symbol="EURUSD",
         side=TradeSide.BUY,
+        order_type=OrderType.MARKET,
         volume=Decimal("0.01"),
         entry_price=Decimal("1.1002"),
         stop_loss=Decimal("1.0992"),
         take_profit=Decimal("1.1022"),
+        maximum_spread=Decimal("0.00050"),
+        risk_fingerprint="0" * 64,
+        request_fingerprint="1" * 64,
+        nonce="nonce_1234567890",
+        strategy_name="test_strategy",
+        strategy_version="1.0.0",
         trading_mode=TradingMode.PAPER,
     )
 

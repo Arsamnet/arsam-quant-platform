@@ -2,8 +2,9 @@
 
 Read `mt5/README.md`, `docs/architecture/trading-node.md`, and the root `AGENTS.md` before changes.
 
-- MQL5 is the last execution guard; validate strictly before any future `OrderSend`.
-- Current phase is paper-only. Do not add real or demo broker order placement yet.
+- MQL5 is the last execution guard; validate strictly before the sole reviewed `OrderSend`.
+- v0.5.0 permits only the dedicated default-off FIBOGroup DEMO guard. Never add a second execution
+  component or any non-DEMO bypass.
 - Never embed OpenAI/news keys, database credentials, broker secrets, or control-plane secrets.
 - Enforce allowed symbols, maximum volume/positions/spread, required broker-side SL/TP, request age,
   nonce/request id uniqueness, and idempotent execution.

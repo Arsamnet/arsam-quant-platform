@@ -24,6 +24,7 @@ the original rationale. File names use `ADR-NNNN-short-title.md`.
 - [ADR-0019: Blocking broker validation policy](ADR-0019-blocking-broker-validation-policy.md)
 - [ADR-0020: Read-only MT5 calculation calibration](ADR-0020-read-only-mt5-calculation-calibration.md)
 - [ADR-0021: Cross-platform MT5 validation](ADR-0021-cross-platform-mt5-validation.md)
+- [ADR-0022: Guarded localhost DEMO execution](ADR-0022-guarded-demo-execution.md)
 
 ## Template
 

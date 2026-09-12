@@ -18,7 +18,7 @@ from fx_platform.backtesting.models import (
 )
 from fx_platform.backtesting.portfolio import SimulatedPortfolio
 from fx_platform.domain.common import TradeSide, TradingMode
-from fx_platform.domain.execution import ExecutionIntent
+from fx_platform.domain.execution import ExecutionIntent, OrderType
 from tests.helpers import make_conversion_rate, make_specification
 
 NOW = datetime(2026, 1, 5, 12, 0, tzinfo=UTC)
@@ -41,8 +41,10 @@ def _bar(**changes: object) -> HistoricalBar:
 
 def _intent(*, side: TradeSide = TradeSide.BUY, **changes: object) -> ExecutionIntent:
     values: dict[str, object] = {
+        "schema_version": "1.0",
         "execution_id": uuid4(),
-        "decision_id": uuid4(),
+        "intent_id": uuid4(),
+        "request_id": uuid4(),
         "signal_id": uuid4(),
         "risk_decision_id": uuid4(),
         "created_at": NOW - timedelta(minutes=1),
@@ -50,10 +52,17 @@ def _intent(*, side: TradeSide = TradeSide.BUY, **changes: object) -> ExecutionI
         "node_id": "deterministic-backtest",
         "symbol": "EURUSD",
         "side": side,
+        "order_type": OrderType.MARKET,
         "volume": Decimal("0.01"),
         "entry_price": Decimal("1.1002") if side is TradeSide.BUY else Decimal("1.1000"),
         "stop_loss": Decimal("1.0980") if side is TradeSide.BUY else Decimal("1.1020"),
         "take_profit": Decimal("1.1020") if side is TradeSide.BUY else Decimal("1.0980"),
+        "maximum_spread": Decimal("0.00050"),
+        "risk_fingerprint": "0" * 64,
+        "request_fingerprint": "1" * 64,
+        "nonce": "backtest_nonce_123456",
+        "strategy_name": "test_strategy",
+        "strategy_version": "1.0.0",
         "trading_mode": TradingMode.PAPER,
     }
     values.update(changes)

@@ -1,6 +1,6 @@
 # Product Requirements
 
-## Bootstrap acceptance
+## Bootstrap acceptance through 0.4
 
 - Paper-only startup and loopback-only internal API
 - Strict versioned request contract with trace ID, UTC timestamp, nonce, node ID, symbol, and data
@@ -25,3 +25,16 @@ Profit claims, strategy optimization, live trading, demo `OrderSend`, billing, l
 multi-tenancy, Redis, paid market/news integrations, optimization, tick replay, broker-calibrated
 fills, and comprehensive monitoring are not part of version 0.4.0. Version 0.4.0 adds only offline,
 read-only broker metadata and hypothetical calculation validation; it does not add demo execution.
+
+## Version 0.5.0 guarded DEMO acceptance
+
+- Paper behavior remains available and live startup remains impossible.
+- Demo requires explicit enablement, loopback authenticated transport, the exact reviewed FIBOGroup
+  DEMO identity, USD retail hedging at 1:100, EURUSD/GBPUSD/USDJPY, 0.01 lot, one Arsam position, and
+  broker-side SL/TP.
+- Only risk-approved immutable intents enter a durable claim-once outbox. The dedicated EA is the
+  sole trade boundary and independently validates immediately before broker submission.
+- Duplicate/restart/crash uncertainty reconciles using durable journal plus magic/comment broker
+  identity and never triggers a blind retry.
+- Windows hardening and production services/databases/monitoring remain explicit non-goals. Release
+  waits for MetaEditor and controlled DEMO evidence.

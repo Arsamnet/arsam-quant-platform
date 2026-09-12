@@ -1,9 +1,10 @@
 # System Context
 
-The bootstrap system boundary is one Windows trading node. MetaTrader 5 will eventually exchange a
-signed versioned JSON contract with a Python API on `127.0.0.1`. Python owns data normalization,
-strategy orchestration, optional advisory calls, deterministic risk, persistence, and observability.
-The MQL5 EA independently owns final validation and future broker interaction.
+The system boundary is one Windows trading node. In explicit 0.5.0 DEMO mode MetaTrader 5 exchanges
+an authenticated versioned JSON contract with a Python API on `127.0.0.1`. Python owns data
+normalization, strategy orchestration, optional advisory calls, deterministic risk, persistence,
+and observability.
+The MQL5 EA independently owns final validation and guarded DEMO broker interaction.
 
 External actors and systems are the operator, MT5/broker, future market/calendar/news providers,
 OpenAI, local PostgreSQL, and a future SaaS control plane. All external content is untrusted. The
@@ -17,3 +18,9 @@ writes optional canonical JSON without requiring PostgreSQL.
 Version 0.4.0 introduces only a file-based read-only trust boundary: an MQL5 script running in an
 already authenticated Windows terminal exports untrusted metadata for offline Python validation.
 There is no return channel from Python, no runtime broker adapter, and no readiness-to-execution path.
+
+Version 0.5.0 adds a separate default-off path: approved risk intents enter a durable local outbox,
+the EA claims them once, repeats fixed DEMO/account/exposure checks, and reports broker state for
+reconciliation. Live startup remains forbidden and the EA has an unconditional DEMO-account check.
+MetaEditor and controlled broker validation are pending; Windows hardening is deferred, so this is
+not production readiness.

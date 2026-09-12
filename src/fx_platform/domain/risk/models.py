@@ -30,6 +30,8 @@ class RiskRejection(StrEnum):
     VOLUME_STEP_MISMATCH = "volume_step_mismatch"
     MISSING_STOP_LOSS = "missing_stop_loss"
     INVALID_STOP_LOSS = "invalid_stop_loss"
+    MISSING_TAKE_PROFIT = "missing_take_profit"
+    INVALID_TAKE_PROFIT = "invalid_take_profit"
     POSITION_LIMIT_EXCEEDED = "position_limit_exceeded"
     DAILY_LOSS_LIMIT_EXCEEDED = "daily_loss_limit_exceeded"
     AI_REQUIRED = "ai_required"
@@ -60,6 +62,7 @@ class RiskLimits:
     max_future_skew: timedelta = timedelta(seconds=2)
     ai_required: bool = False
     economic_calendar_required: bool = False
+    require_take_profit: bool = False
     event_blackout_before: timedelta = timedelta(minutes=15)
     event_blackout_after: timedelta = timedelta(minutes=15)
 

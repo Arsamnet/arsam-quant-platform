@@ -11,9 +11,9 @@ the broker-native environment and must protect the final execution boundary.
 ## Decision
 
 Python owns normalized data, strategy, advisory orchestration, deterministic risk, audit, and intent
-creation. A future MQL5 EA receives only a validated versioned localhost contract and independently
-validates safety before broker-side SL/TP and execution. The bootstrap implements only a fake paper
-adapter and no `OrderSend`.
+creation. MQL5 receives only a validated versioned localhost contract and independently validates
+safety before broker-side SL/TP and execution. The initial bootstrap used only a fake paper adapter;
+ADR-0022 implements the guarded DEMO boundary in 0.5.0.
 
 ## Alternatives Considered
 
@@ -33,5 +33,5 @@ HMAC protects local message integrity/replay defense in depth.
 
 ## Testing Impact
 
-Python contract tests cover serialization and rejection. Future EA tests require actual MetaEditor
+Python contract tests cover serialization and rejection. EA validation requires actual MetaEditor
 compilation and broker-demo fault/reconciliation tests; CI must not fake this result.

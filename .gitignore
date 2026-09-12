@@ -18,6 +18,7 @@ build/
 dist/
 var/broker-snapshots/
 var/broker-reports/
+var/demo-execution.sqlite3*
 .uv-cache/
 .idea/
 .vscode/*.local.json

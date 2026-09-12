@@ -19,3 +19,10 @@ def verify_signature(body: bytes, provided_signature: str | None, secret: str | 
         return False
     expected_digest = hmac.digest(secret.encode(), body, hashlib.sha256)
     return hmac.compare_digest(provided_digest_bytes, expected_digest)
+
+
+def verify_local_token(provided_token: str | None, secret: str | None) -> bool:
+    """Compare a local execution token in constant time and fail closed when unconfigured."""
+    if not secret or not provided_token:
+        return False
+    return hmac.compare_digest(provided_token.encode(), secret.encode())

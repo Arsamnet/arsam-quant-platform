@@ -23,10 +23,57 @@ def test_safe_defaults_are_paper_loopback_and_ai_disabled() -> None:
     assert build_runtime(settings).executor.executed_intents == ()
 
 
-@pytest.mark.parametrize("mode", [TradingMode.DEMO, TradingMode.LIVE])
-def test_non_paper_modes_fail_startup(mode: TradingMode) -> None:
-    with pytest.raises(ValidationError, match="paper"):
-        _settings(trading_mode=mode)
+def test_live_mode_fails_startup() -> None:
+    with pytest.raises(ValidationError, match=r"live.*forbidden"):
+        _settings(trading_mode=TradingMode.LIVE)
+
+
+def test_demo_mode_requires_explicit_enablement_and_secret() -> None:
+    with pytest.raises(ValidationError, match="explicit"):
+        _settings(trading_mode=TradingMode.DEMO)
+    with pytest.raises(ValidationError, match=r"32\+"):
+        _settings(trading_mode=TradingMode.DEMO, demo_execution_enabled=True)
+
+
+def _demo_settings(**changes: object) -> Settings:
+    values: dict[str, object] = {
+        "trading_mode": TradingMode.DEMO,
+        "demo_execution_enabled": True,
+        "demo_execution_secret": SecretStr("demo-test-secret-that-is-at-least-32-chars"),
+    }
+    values.update(changes)
+    return _settings(**values)
+
+
+def test_guarded_demo_configuration_is_explicit_and_fixed() -> None:
+    settings = _demo_settings()
+
+    assert settings.trading_mode is TradingMode.DEMO
+    assert settings.active_node_id == "local-demo-node"
+    assert settings.demo_max_volume == Decimal("0.01")
+    assert settings.demo_max_open_positions == 1
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("demo_expected_broker_company", "Wrong Broker"),
+        ("demo_expected_broker_server", "Wrong Server"),
+        ("demo_expected_account_currency", "EUR"),
+        ("demo_expected_account_mode", "retail_netting"),
+        ("demo_expected_leverage", 200),
+        ("demo_allowed_symbols", frozenset({"EURUSD"})),
+        ("demo_max_volume", Decimal("0.02")),
+        ("demo_max_open_positions", 2),
+        ("demo_magic_number", 5050002),
+        ("bind_host", "localhost"),
+        ("demo_require_stop_loss", False),
+        ("demo_require_take_profit", False),
+    ],
+)
+def test_demo_identity_and_exposure_policy_cannot_be_relaxed(field: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        _demo_settings(**{field: value})
 
 
 def test_public_bind_address_fails_startup() -> None:

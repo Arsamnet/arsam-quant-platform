@@ -10,7 +10,12 @@ import pytest
 from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
 from fx_platform.domain.common import TradeSide, TradingMode, require_utc
 from fx_platform.domain.economic import EconomicEvent, EventImportance
-from fx_platform.domain.execution import ExecutionIntent, ExecutionResult, ExecutionStatus
+from fx_platform.domain.execution import (
+    ExecutionIntent,
+    ExecutionResult,
+    ExecutionStatus,
+    OrderType,
+)
 from fx_platform.domain.market import (
     AccountSnapshot,
     CurrencyConversionFailure,
@@ -245,8 +250,10 @@ def test_economic_event_requires_utc_uppercase_point_in_time_data() -> None:
 
 def _intent(**changes: object) -> ExecutionIntent:
     values: dict[str, object] = {
+        "schema_version": "1.0",
         "execution_id": uuid4(),
-        "decision_id": uuid4(),
+        "intent_id": uuid4(),
+        "request_id": uuid4(),
         "signal_id": SIGNAL_ID,
         "risk_decision_id": uuid4(),
         "created_at": NOW,
@@ -254,19 +261,26 @@ def _intent(**changes: object) -> ExecutionIntent:
         "node_id": "paper-node",
         "symbol": "EURUSD",
         "side": TradeSide.BUY,
+        "order_type": OrderType.MARKET,
         "volume": Decimal("0.01"),
         "entry_price": Decimal("1.1002"),
         "stop_loss": Decimal("1.0992"),
         "take_profit": Decimal("1.1022"),
+        "maximum_spread": Decimal("0.00050"),
+        "risk_fingerprint": "0" * 64,
+        "request_fingerprint": "1" * 64,
+        "nonce": "nonce_1234567890",
+        "strategy_name": "test_strategy",
+        "strategy_version": "1.0.0",
         "trading_mode": TradingMode.PAPER,
     }
     values.update(changes)
     return ExecutionIntent(**values)
 
 
-def test_execution_intent_is_paper_only_and_has_future_expiry() -> None:
+def test_execution_intent_forbids_live_and_has_future_expiry() -> None:
     assert _intent().trading_mode is TradingMode.PAPER
-    with pytest.raises(ValueError, match="paper"):
+    with pytest.raises(ValueError, match="live"):
         _intent(trading_mode=TradingMode.LIVE)
     with pytest.raises(ValueError, match="later"):
         _intent(expires_at=NOW)

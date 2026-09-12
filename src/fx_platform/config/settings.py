@@ -1,13 +1,18 @@
-"""Secure settings with paper-only and loopback-only startup validation."""
+"""Secure settings with explicit demo and forbidden-live startup validation."""
 
 from decimal import Decimal
 from enum import StrEnum
+from pathlib import Path
 from typing import Self
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fx_platform.domain.common import TradingMode
+
+_MINIMUM_DEMO_SECRET_LENGTH = 32
+_EXPECTED_DEMO_LEVERAGE = 100
+_EXPECTED_DEMO_MAGIC_NUMBER = 5050001
 
 
 class AiMode(StrEnum):
@@ -50,6 +55,22 @@ class Settings(BaseSettings):
     max_daily_loss: Decimal | None = Field(default=None, exclude=True)
     max_spread: Decimal | None = Field(default=None, exclude=True)
     economic_calendar_required: bool = False
+    demo_execution_enabled: bool = False
+    demo_expected_broker_company: str = "FIBO Group, Ltd"
+    demo_expected_broker_server: str = "FIBOGroup-MT5 Server"
+    demo_expected_account_currency: str = "USD"
+    demo_expected_account_mode: str = "retail_hedging"
+    demo_expected_leverage: int = 100
+    demo_allowed_symbols: frozenset[str] = frozenset({"EURUSD", "GBPUSD", "USDJPY"})
+    demo_max_volume: Decimal = Decimal("0.01")
+    demo_max_open_positions: int = Field(default=1, ge=1)
+    demo_require_stop_loss: bool = True
+    demo_require_take_profit: bool = True
+    demo_request_ttl_seconds: int = Field(default=10, ge=5, le=15)
+    demo_node_id: str = Field(default="local-demo-node", min_length=1, max_length=64)
+    demo_magic_number: int = Field(default=5050001, ge=1, le=2147483647)
+    demo_execution_secret: SecretStr | None = None
+    demo_outbox_path: Path = Path("var/demo-execution.sqlite3")
 
     @field_validator("bind_host")
     @classmethod
@@ -59,7 +80,7 @@ class Settings(BaseSettings):
             raise ValueError("FX_BIND_HOST must be a loopback address during bootstrap")
         return value
 
-    @field_validator("allowed_symbols")
+    @field_validator("allowed_symbols", "demo_allowed_symbols")
     @classmethod
     def validate_symbols(cls, value: frozenset[str]) -> frozenset[str]:
         """Require an explicit uppercase allowlist."""
@@ -78,11 +99,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_safe_mode(self) -> Self:
-        """Fail startup for demo/live and inconsistent AI configuration."""
-        if self.trading_mode is not TradingMode.PAPER:
-            raise ValueError(
-                "Only FX_TRADING_MODE=paper is supported; demo/live trading is disabled"
-            )
+        """Fail startup for live or an incompletely locked demo configuration."""
+        if self.trading_mode is TradingMode.LIVE:
+            raise ValueError("FX_TRADING_MODE=live is forbidden")
+        if self.trading_mode is TradingMode.DEMO:
+            self._validate_demo_configuration()
         if self.ai_required and self.ai_mode is AiMode.DISABLED:
             raise ValueError("FX_AI_REQUIRED=true cannot be used with FX_AI_MODE=disabled")
         if self.ai_mode is AiMode.OPENAI and (
@@ -119,3 +140,56 @@ class Settings(BaseSettings):
             if fraction > Decimal(1):
                 raise ValueError(f"{field_name} must not exceed one")
         return self
+
+    def _validate_demo_configuration(self) -> None:
+        if not self.demo_execution_enabled:
+            raise ValueError(
+                "FX_TRADING_MODE=demo requires explicit FX_DEMO_EXECUTION_ENABLED=true"
+            )
+        secret = (
+            ""
+            if self.demo_execution_secret is None
+            else self.demo_execution_secret.get_secret_value()
+        )
+        if len(secret) < _MINIMUM_DEMO_SECRET_LENGTH:
+            raise ValueError("demo execution requires a 32+ character environment-owned secret")
+        locked_values = {
+            "FX_DEMO_EXPECTED_BROKER_COMPANY": (
+                self.demo_expected_broker_company,
+                "FIBO Group, Ltd",
+            ),
+            "FX_DEMO_EXPECTED_BROKER_SERVER": (
+                self.demo_expected_broker_server,
+                "FIBOGroup-MT5 Server",
+            ),
+            "FX_DEMO_EXPECTED_ACCOUNT_CURRENCY": (
+                self.demo_expected_account_currency,
+                "USD",
+            ),
+            "FX_DEMO_EXPECTED_ACCOUNT_MODE": (
+                self.demo_expected_account_mode,
+                "retail_hedging",
+            ),
+        }
+        for name, (actual, expected) in locked_values.items():
+            if actual != expected:
+                raise ValueError(f"{name} must equal the reviewed demo identity")
+        if self.demo_expected_leverage != _EXPECTED_DEMO_LEVERAGE:
+            raise ValueError("FX_DEMO_EXPECTED_LEVERAGE must equal 100")
+        if self.bind_host != "127.0.0.1":
+            raise ValueError("guarded demo execution requires FX_BIND_HOST=127.0.0.1")
+        if self.demo_allowed_symbols != frozenset({"EURUSD", "GBPUSD", "USDJPY"}):
+            raise ValueError("FX_DEMO_ALLOWED_SYMBOLS must equal the reviewed initial allowlist")
+        if self.demo_max_volume != Decimal("0.01"):
+            raise ValueError("FX_DEMO_MAX_VOLUME must equal the 0.01 hard cap")
+        if self.demo_max_open_positions != 1:
+            raise ValueError("FX_DEMO_MAX_OPEN_POSITIONS must equal one")
+        if self.demo_magic_number != _EXPECTED_DEMO_MAGIC_NUMBER:
+            raise ValueError("FX_DEMO_MAGIC_NUMBER must equal the reviewed value 5050001")
+        if not self.demo_require_stop_loss or not self.demo_require_take_profit:
+            raise ValueError("demo execution requires broker-side stop loss and take profit")
+
+    @property
+    def active_node_id(self) -> str:
+        """Return the node identity for the selected execution mode."""
+        return self.demo_node_id if self.trading_mode is TradingMode.DEMO else self.node_id
