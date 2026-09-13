@@ -32,6 +32,8 @@ uses Semantic Versioning during pre-production.
 
 - Serialize unsigned 64-bit MQL5 broker order/deal IDs without signed narrowing and remove the
   incompatible pre-1.0 Market version property while retaining the platform version as 0.5.0.
+- Validate MetaEditor compilation using an exact zero-error/zero-warning result and a freshly
+  generated non-empty EX5 artifact instead of assuming the successful process exit code is zero.
 
 ### Security
 

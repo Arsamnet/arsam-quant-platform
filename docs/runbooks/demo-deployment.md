@@ -43,6 +43,11 @@ The optional wrapper runs the same gate and fails on any warning:
 ./scripts/compile-mt5-execution-guard.ps1 -MetaEditorPath "<path-to-metaeditor64.exe>"
 ```
 
+The wrapper removes any existing sibling `.ex5` first, then requires one exact clean `Result` line
+and a newly created non-empty `.ex5`. It records MetaEditor's process exit code as evidence but does
+not treat that code as authoritative because the reviewed FIBO installation returns `1` after a
+successful compile.
+
 In MT5, allow WebRequest only for `http://127.0.0.1:8000`. Attach the EA to one chart with:
 
 ```text
