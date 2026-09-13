@@ -15,6 +15,7 @@ from fx_platform.domain.common import TradingMode
 pytestmark = pytest.mark.anyio
 
 _SECRET = "demo-api-test-secret-that-is-at-least-32-chars"
+_MAX_MQL5_ULONG = 18_446_744_073_709_551_615
 
 
 def _settings(path: Path) -> Settings:
@@ -64,8 +65,8 @@ def _result(intent: dict[str, object], *, status: str, reconciliation: str) -> d
         "status": status,
         "broker_retcode": 10009,
         "broker_retcode_description": "request completed",
-        "broker_order_id": 123456,
-        "broker_deal_id": 654321,
+        "broker_order_id": _MAX_MQL5_ULONG,
+        "broker_deal_id": _MAX_MQL5_ULONG - 1,
         "requested_volume": intent["volume"],
         "filled_volume": intent["volume"],
         "requested_price": intent["requested_price"],

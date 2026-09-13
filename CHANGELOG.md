@@ -28,6 +28,11 @@ uses Semantic Versioning during pre-production.
 - Scope the MQL5 forbidden-trade scan so every component except the reviewed guard remains read-only
   and exactly one production-code `OrderSend` call exists.
 
+### Fixed
+
+- Serialize unsigned 64-bit MQL5 broker order/deal IDs without signed narrowing and remove the
+  incompatible pre-1.0 Market version property while retaining the platform version as 0.5.0.
+
 ### Security
 
 - Add independent Python and MQL5 live-account barriers, independent default-off kill switches, and

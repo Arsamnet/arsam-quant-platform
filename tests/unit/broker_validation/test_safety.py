@@ -24,6 +24,16 @@ def test_repository_has_exactly_one_reviewed_mql5_execution_boundary() -> None:
     assert validate_mql5_execution_boundary(REPOSITORY_ROOT, GUARD_PATH) == ()
 
 
+def test_execution_guard_uses_unsigned_broker_ids_and_no_market_version_property() -> None:
+    source = GUARD_PATH.read_text(encoding="utf-8")
+
+    assert "LongToString" not in source
+    assert "const ulong order_id,const ulong deal_id" in source
+    assert 'body+="\\"broker_order_id\\":"+StringFormat("%I64u",order_id)' in source
+    assert 'body+="\\"broker_deal_id\\":"+StringFormat("%I64u",deal_id)' in source
+    assert "#property version" not in source
+
+
 @pytest.mark.parametrize(
     "guard_fragment",
     [

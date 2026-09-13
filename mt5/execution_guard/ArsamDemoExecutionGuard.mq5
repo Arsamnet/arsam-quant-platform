@@ -1,5 +1,4 @@
 #property copyright "Arsam Quant Platform"
-#property version   "0.50"
 #property strict
 #property description "Guarded FIBOGroup DEMO execution boundary. LIVE accounts are always rejected."
 
@@ -542,8 +541,8 @@ bool ReportResult(const ExecutionWork &work,const string status,const uint retco
    body+="\"status\":\""+status+"\",";
    body+="\"broker_retcode\":"+IntegerToString((int)retcode)+",";
    body+="\"broker_retcode_description\":\""+JsonEscape(description)+"\",";
-   body+="\"broker_order_id\":"+LongToString((long)order_id)+",";
-   body+="\"broker_deal_id\":"+LongToString((long)deal_id)+",";
+   body+="\"broker_order_id\":"+StringFormat("%I64u",order_id)+",";
+   body+="\"broker_deal_id\":"+StringFormat("%I64u",deal_id)+",";
    body+="\"requested_volume\":\""+DoubleToString(work.volume,2)+"\",";
    body+="\"filled_volume\":\""+DoubleToString(filled_volume,2)+"\",";
    body+="\"requested_price\":\""+DoubleToString(work.requested_price,digits)+"\",";
