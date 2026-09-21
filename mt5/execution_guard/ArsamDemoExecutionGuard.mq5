@@ -754,9 +754,23 @@ void ExecuteGuarded(ExecutionWork &work)
       RejectBeforeSubmission(work,"margin_preflight_failed");
       return;
      }
-   if(!OrderCheck(request,check) || check.retcode!=TRADE_RETCODE_DONE)
+   ResetLastError();
+   ZeroMemory(check);
+
+   bool check_ok=OrderCheck(request,check);
+   int check_error=GetLastError();
+
+   if(!check_ok || check_error!=0 || check.retcode!=0)
      {
-      RejectBeforeSubmission(work,"order_check_failed_"+IntegerToString((int)check.retcode));
+      RejectBeforeSubmission(
+         work,
+         "order_check_failed_local_"+
+         IntegerToString(check_error)+
+         "_retcode_"+
+         IntegerToString((int)check.retcode)+
+         "_"+
+         check.comment
+      );
       return;
      }
    MqlTick final_tick;
@@ -768,11 +782,23 @@ void ExecuteGuarded(ExecutionWork &work)
       return;
      }
    request.price=(work.side=="buy" ? final_tick.ask : final_tick.bid);
+   ResetLastError();
    ZeroMemory(check);
-   if(!OrderCheck(request,check) || check.retcode!=TRADE_RETCODE_DONE)
+
+   bool final_check_ok=OrderCheck(request,check);
+   int final_check_error=GetLastError();
+
+   if(!final_check_ok || final_check_error!=0 || check.retcode!=0)
      {
-      RejectBeforeSubmission(work,"final_order_check_failed_"+
-                             IntegerToString((int)check.retcode));
+      RejectBeforeSubmission(
+         work,
+         "final_order_check_failed_local_"+
+         IntegerToString(final_check_error)+
+         "_retcode_"+
+         IntegerToString((int)check.retcode)+
+         "_"+
+         check.comment
+      );
       return;
      }
    if(!AppendJournal(work,"submitted",marker))
