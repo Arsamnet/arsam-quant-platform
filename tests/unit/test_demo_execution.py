@@ -304,3 +304,58 @@ def test_demo_risk_requires_tp_and_keeps_volume_spread_position_and_grid_limits(
     assert RiskRejection.VOLUME_LIMIT_EXCEEDED in oversized.reasons
     assert RiskRejection.POSITION_LIMIT_EXCEEDED in position_limited.reasons
     assert RiskRejection.SPREAD_TOO_WIDE in spread_limited.reasons
+
+
+def test_broker_price_roundtrip_residue_does_not_conflict(tmp_path: Path) -> None:
+    store = _store(tmp_path / "demo.sqlite3")
+    intent = _intent(
+        entry_price=Decimal("1.1472800000000001"),
+        stop_loss=Decimal("1.1482800000000001"),
+        take_profit=Decimal("1.1452800000000001"),
+    )
+
+    assert store.execute(intent).status is ExecutionStatus.PENDING
+    assert store.claim_next(intent.node_id) == intent
+
+    store.record_result(
+        _result(
+            intent,
+            status=ExecutionStatus.POSITION_CONFIRMED,
+            requested_price=Decimal("1.14728"),
+            stop_loss=Decimal("1.14828"),
+            take_profit=Decimal("1.14528"),
+            filled_volume=Decimal("0.01"),
+            executed_price=Decimal("1.14727"),
+            broker_order_id=123456,
+            broker_deal_id=654321,
+            reconciliation_status=ReconciliationStatus.CONFIRMED,
+            message="broker-confirmed position",
+        )
+    )
+
+    assert store.get_status(intent.execution_id) is ExecutionStatus.POSITION_CONFIRMED
+
+
+def test_real_broker_price_difference_still_conflicts(tmp_path: Path) -> None:
+    store = _store(tmp_path / "demo.sqlite3")
+    intent = _intent(
+        entry_price=Decimal("1.1472800000000001"),
+        stop_loss=Decimal("1.1482800000000001"),
+        take_profit=Decimal("1.1452800000000001"),
+    )
+
+    assert store.execute(intent).status is ExecutionStatus.PENDING
+    assert store.claim_next(intent.node_id) == intent
+
+    with pytest.raises(
+        ExecutionStoreConflictError,
+        match="does not match claimed intent",
+    ):
+        store.record_result(
+            _result(
+                intent,
+                requested_price=Decimal("1.14729"),
+                stop_loss=Decimal("1.14828"),
+                take_profit=Decimal("1.14528"),
+            )
+        )

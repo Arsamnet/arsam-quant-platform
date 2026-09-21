@@ -22,6 +22,14 @@ from fx_platform.domain.execution import (
 )
 
 _HARD_DEMO_VOLUME_CAP = Decimal("0.01")
+_BROKER_PRICE_ROUNDTRIP_TOLERANCE = Decimal("0.000000000001")
+
+
+def _same_broker_price(actual: Decimal | None, expected: Decimal | None) -> bool:
+    """Allow only insignificant binary-float serialization residue in broker prices."""
+    if actual is None or expected is None:
+        return actual is expected
+    return abs(actual - expected) <= _BROKER_PRICE_ROUNDTRIP_TOLERANCE
 
 
 class ReconciliationRequiredError(RuntimeError):
@@ -323,15 +331,14 @@ class SqliteDemoExecutionStore:
                 connection.rollback()
                 raise ExecutionStoreConflictError("unknown execution or intent identity")
             intent = _intent_from_wire(json.loads(row["intent_json"]))
-            expected_fields = (
-                (result.requested_volume, intent.volume),
-                (result.requested_price, intent.requested_price),
-                (result.stop_loss, intent.stop_loss),
-                (result.take_profit, intent.take_profit),
-                (result.symbol, intent.symbol),
-                (result.side, intent.side),
-            )
-            if any(actual != expected for actual, expected in expected_fields):
+            if (
+                result.requested_volume != intent.volume
+                or not _same_broker_price(result.requested_price, intent.requested_price)
+                or not _same_broker_price(result.stop_loss, intent.stop_loss)
+                or not _same_broker_price(result.take_profit, intent.take_profit)
+                or result.symbol != intent.symbol
+                or result.side != intent.side
+            ):
                 connection.rollback()
                 raise ExecutionStoreConflictError("broker result does not match claimed intent")
             if result.filled_volume is not None and result.filled_volume > intent.volume:
