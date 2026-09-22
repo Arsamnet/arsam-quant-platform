@@ -7,7 +7,12 @@ from uuid import UUID
 
 from fx_platform.domain.common import require_utc
 from fx_platform.domain.execution import ExecutionStatus
-from fx_platform.domain.market import AccountSnapshot, CurrencyConversionRate, MarketSnapshot
+from fx_platform.domain.market import (
+    AccountSnapshot,
+    CurrencyConversionRate,
+    InverseConversionRateDerivation,
+    MarketSnapshot,
+)
 
 
 class DecisionOutcomeStatus(StrEnum):
@@ -42,6 +47,7 @@ class DecisionCommand:
     market: MarketSnapshot
     account: AccountSnapshot
     conversion_rates: tuple[CurrencyConversionRate, ...] = ()
+    inverse_conversion_derivations: tuple[InverseConversionRateDerivation, ...] = ()
 
     def __post_init__(self) -> None:
         require_utc(self.request_timestamp, "request_timestamp")
@@ -49,6 +55,13 @@ class DecisionCommand:
             raise ValueError("unsupported schema version")
         if not self.nonce or not self.node_id:
             raise ValueError("nonce and node_id must not be empty")
+
+    @property
+    def directed_conversion_rates(self) -> tuple[CurrencyConversionRate, ...]:
+        """Return direct inputs plus explicitly derived exact-inverse rates for risk."""
+        return self.conversion_rates + tuple(
+            derivation.conversion_rate for derivation in self.inverse_conversion_derivations
+        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

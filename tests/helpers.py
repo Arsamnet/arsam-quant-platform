@@ -9,9 +9,12 @@ from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
 from fx_platform.domain.common import TradeSide
 from fx_platform.domain.market import (
     AccountSnapshot,
+    BrokerFxQuote,
     CurrencyConversionRate,
+    InverseConversionRateDerivation,
     MarketSnapshot,
     SymbolSpecification,
+    derive_inverse_conversion_rate,
 )
 from fx_platform.domain.strategy import SignalCandidate
 
@@ -113,6 +116,32 @@ def make_conversion_rate(
         target_currency=target_currency,
         rate=rate,
         observed_at=observed_at,
+    )
+
+
+def make_inverse_conversion_derivation(
+    *,
+    source_currency: str = "JPY",
+    target_currency: str = "USD",
+    source_symbol: str = "USDJPY",
+    pair_base_currency: str = "USD",
+    pair_quote_currency: str = "JPY",
+    bid: Decimal = Decimal("157.202"),
+    ask: Decimal = Decimal("157.213"),
+    observed_at: datetime = NOW,
+) -> InverseConversionRateDerivation:
+    """Build an audited exact-inverse conversion derivation."""
+    return derive_inverse_conversion_rate(
+        source_currency=source_currency,
+        target_currency=target_currency,
+        broker_quote=BrokerFxQuote(
+            source_symbol=source_symbol,
+            base_currency=pair_base_currency,
+            quote_currency=pair_quote_currency,
+            bid=bid,
+            ask=ask,
+            observed_at=observed_at,
+        ),
     )
 
 

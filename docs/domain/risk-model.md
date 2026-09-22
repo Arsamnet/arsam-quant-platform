@@ -15,7 +15,9 @@ overridden by strategy or AI output.
 - Per-trade stop exposure starts with
   `abs(entry - stop) / tick_size * tick_value * volume` in the declared tick-value currency.
 - When the tick-value currency differs from the account currency, the caller must provide one fresh,
-  directed `CurrencyConversionRate`. Missing, duplicate, stale, or future conversion data rejects.
+  directed `CurrencyConversionRate`. It may be supplied directly or derived at the API boundary
+  from an explicit exact reverse broker-pair quote. Missing, duplicate, stale, or future conversion
+  data rejects.
 - The account risk budget is `balance * max_risk_fraction`.
 - The effective daily-loss limit is
   `min(balance * max_daily_loss_fraction, optional_absolute_daily_loss_cap)`; reaching the boundary
@@ -44,6 +46,14 @@ The demo composition overrides exposure to exactly `max_volume = 0.01`,
 these constraints against current broker symbol/account state. USDJPY remains blocked without the
 fresh directed conversion used by current risk semantics.
 
+The only reviewed derivation is an explicit exact-pair inverse. The request supplies requested
+source/target currencies, source symbol, pair base/quote currencies, Bid, Ask, and observed-at time.
+Pair base must equal the requested target and pair quote must equal the requested source. For
+`JPY -> USD` from `USDJPY`, `rate = Decimal(1) / ask` because obtaining USD with JPY buys USD at the
+USDJPY Ask. The immutable result retains all quote facts, method `inverse_exact_pair`, side `ask`,
+and the directed rate. The domain performs no lookup. It never uses Bid, midpoint, last price,
+arbitrary reverse-rate inference, or a cross/multi-hop path.
+
 ## Fail-closed rule order
 
 The engine evaluates all available deterministic rules to produce an auditable set of rejection
@@ -52,6 +62,11 @@ mode, an independent symbol allowlist, specification availability, stale data, s
 signal direction, stop loss, symbol/global volume bounds, position count, account-relative daily
 loss, AI policy, conversion availability, and per-trade risk. An absent spread policy or required
 currency conversion fails closed.
+
+Direct and derived rates enter the same directed-rate collection. More than one applicable source,
+including one direct rate plus one exact-inverse derivation, is ambiguous and rejects rather than
+being selected by priority. Quote age is evaluated by the unchanged conversion freshness and
+future-skew limits.
 
 The application rejects a symbol absent from the current node's specification provider before
 strategy, AI, calendar, risk, or execution calls. The Risk Engine still performs its own symbol

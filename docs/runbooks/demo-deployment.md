@@ -113,9 +113,61 @@ and replay still does not submit.
 ## 7. Symbol progression and stop condition
 
 After EURUSD passes execution, reconciliation, replay, both kill switches, and restart, repeat one
-0.01 GBPUSD test. Test USDJPY last and only with a fresh explicit directed JPY-to-USD conversion
-accepted by RiskEngine. Never weaken conversion policy.
+0.01 GBPUSD test. Test USDJPY last and only through this reviewed flow:
+
+1. With the EA disabled, obtain a fresh read-only USDJPY broker Bid/Ask snapshot.
+2. Revalidate broker, server, USD account, DEMO mode, hedging mode, leverage, and USDJPY identity.
+3. In the normal `/v1/decision` request, explicitly request `JPY -> USD` and supply the exact
+   inverse USDJPY pair currencies, Bid, Ask, and observed-at UTC time in
+   `inverse_conversion_quotes`.
+4. Confirm the API derives `rate = Decimal(1) / USDJPY ask`. Ask is mandatory because obtaining USD
+   with JPY buys USD at the USDJPY Ask.
+5. Retain the request, quote provenance, timestamp, method, side, and resulting directed rate as
+   sanitized evidence.
+6. Require the normal freshness/future-skew checks and pass only the directed JPY-to-USD rate into
+   `RiskEngine`.
+7. Stop on any pair/currency mismatch, stale/future quote, invalid price, missing conversion, or
+   multiple applicable conversion candidates. Do not use Bid, midpoint, last price, arbitrary
+   inversion, or any cross/multi-hop rate.
+8. Complete deterministic and risk negative tests while the EA remains disabled.
+9. Only after explicit approval, arm the EA for one 0.01 USDJPY DEMO execution.
 
 On any `unknown`, mismatched ID/fact, uncertain broker history, unexpected position, or failed
 result report: disable the EA, leave Python blocked, preserve sanitized evidence, and reconcile
 manually. Never retry `OrderSend` automatically.
+
+## 8. Sanitized validation completed before inverse-quote implementation
+
+The reviewed environment was `FIBO Group, Ltd` / `FIBOGroup-MT5 Server`, USD DEMO
+(`trade_mode_code=0`), retail hedging (`margin_mode_code=2`), leverage 100, hard volume cap 0.01,
+and one open position maximum. LIVE remained forbidden.
+
+- Commit `bc11030` corrected `OrderCheck` handling after FIBO returned Boolean success,
+  `GetLastError()=0`, `check.retcode=0`, and `comment=Done`. `OrderSend` continues to use broker
+  trade-server retcodes.
+- Commit `94d5bdb` allowed only `1e-12` broker-price serialization residue in durable result matching
+  (for example `1.1472800000000001` versus broker-normalized `1.14728`). Volume and identity remain
+  exact and a real one-tick price mismatch still rejects.
+- EURUSD SELL 0.01 completed through the normal decision path, broker-side SL/TP, ticket/order
+  `33833840`, durable `position_confirmed`, duplicate replay without durable mutation, both kill
+  switches, API restart, and EA restart without a second order. It was manually closed: trade P/L
+  `-0.48 USD`, commission `-0.06 USD`, net account effect `-0.54 USD`.
+- GBPUSD request `a24fa1f3-d4d6-4354-b32a-8960534c9ab5`, execution
+  `23a990c3-18b2-52e5-8adb-b870e27d381b`, SELL 0.01 reached broker ticket `33842795`, deal
+  `24196918`, executed price `1.33843`, SL `1.33946`, TP `1.33646`, confirmed broker protection,
+  zero pending orders, and durable counts `position_confirmed=2`, `rejected=1`. It was manually
+  closed: P/L `+0.14 USD`, commission `-0.08 USD`, swap `0`.
+- After both closes the account showed starting balance `10000.00 USD`, current balance
+  `9999.52 USD`, trade Profit `-0.34 USD`, Commission `-0.14 USD`, Swap/Fee `0`, net realized effect
+  `-0.48 USD`, and zero open positions.
+- USDJPY used previous D1 close `156.868`. With no `JPY -> USD` conversion, request
+  `9ec5f84f-467e-46b8-afc8-51164530b843` correctly returned `risk_rejected` /
+  `conversion_rate_unavailable` with no execution ID or status.
+
+These figures validate execution and fail-closed paths only; they are not strategy-performance or
+profitability evidence. No USDJPY broker execution has passed. Local inverse-quote implementation,
+deterministic/risk-negative validation, and quality gates completed with 426 tests passing, 96.07%
+branch coverage, Ruff format/check, strict mypy, and pre-commit. Remaining work is Windows
+deployment of this change and one explicitly approved 0.01 USDJPY DEMO execution followed by
+reconciliation, replay, kill-switch, and restart checks as applicable. Only then may final v0.5.0
+merge/tag be considered.

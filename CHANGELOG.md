@@ -7,6 +7,9 @@ uses Semantic Versioning during pre-production.
 
 ### Added
 
+- Explicit audited exact-pair inverse conversion input for schema 1.0, retaining broker symbol,
+  pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Ask provenance, and the final
+  directed rate in deterministic request identity. Cross-rate inference remains forbidden.
 - Immutable schema-1.0 execution intents/results with request/risk fingerprints, market-only order
   type, exact decimal strings, UTC times, strategy/risk identities, and explicit reconciliation.
 - Atomic synchronized SQLite DEMO outbox with durable execution/intent/request/nonce/fingerprint
@@ -22,6 +25,11 @@ uses Semantic Versioning during pre-production.
 ### Changed
 
 - Prepare development version 0.5.0 while preserving paper behavior and deterministic backtests.
+- Complete controlled 0.01 EURUSD and GBPUSD FIBOGroup DEMO execution, protection,
+  reconciliation, replay, kill-switch, and restart validation. This is execution-path evidence, not
+  strategy-profitability evidence.
+- Confirm the USDJPY missing-conversion negative gate returns `conversion_rate_unavailable` without
+  execution. USDJPY inverse-conversion broker execution remains pending.
 - Permit `demo` startup only with explicit enablement, exact reviewed identity/limits, a 32+
   character environment-owned secret, and loopback binding; continue rejecting `live` startup.
 - Require take profit in demo risk policy and use 0.01 lot / one position application limits.
@@ -30,6 +38,10 @@ uses Semantic Versioning during pre-production.
 
 ### Fixed
 
+- Accept successful FIBO MQL5 `OrderCheck` semantics (`bool=true`, `GetLastError()=0`,
+  `check.retcode=0`) while preserving trade-server retcode handling for `OrderSend`.
+- Tolerate at most `1e-12` broker-price serialization residue in durable result matching while
+  keeping volume/identity exact and rejecting a real one-tick mismatch.
 - Serialize unsigned 64-bit MQL5 broker order/deal IDs without signed narrowing and remove the
   incompatible pre-1.0 Market version property while retaining the platform version as 0.5.0.
 - Validate MetaEditor compilation using an exact zero-error/zero-warning result and a freshly
@@ -37,12 +49,16 @@ uses Semantic Versioning during pre-production.
 
 ### Security
 
+- Preserve fail-closed behavior for absent, malformed, stale, future, non-inverse, or ambiguous
+  conversion inputs; exact-inverse derivation uses only caller-supplied data and never performs a
+  broker/network lookup or cross-rate inference.
 - Add independent Python and MQL5 live-account barriers, independent default-off kill switches, and
   constant-time Python token verification without logging headers, secrets, or account login.
 - Treat unknown, failed, claimed, submitted, filled, and partial reconciliation as blocking; compare
   reported symbol/side/volume/price/SL/TP against the claimed intent and reject overfills/conflicts.
-- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready. MetaEditor
-  compile and controlled EURUSD/GBPUSD/USDJPY DEMO evidence remain release blockers.
+- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready. Reviewed
+  inverse-conversion validation and controlled USDJPY DEMO evidence remain release blockers; any
+  MQL5 change requires a fresh compile/install gate.
 
 ## [0.4.0] - 2026-09-06
 

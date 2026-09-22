@@ -15,7 +15,7 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Forged/replayed intent | Optional decision HMAC; authenticated demo polling; durable UUID/nonce/fingerprint uniqueness; expiry; EA journal | Process identity/mTLS if transport leaves loopback; key rotation |
 | Unsafe/compromised AI | Strict schema; advisory-only; risk after AI | Provider isolation, budgets, red-team suite |
 | Prompt injection from news | External text excluded from authority and bootstrap payload | Classifier sandbox and adversarial fixtures |
-| Risk bypass | Deterministic rules; immutable approved-only intent; independent fixed MQL5 guard | Signed policy distribution |
+| Risk bypass | Deterministic rules; immutable approved-only intent; exact directed conversion with narrowly reviewed inverse-quote derivation; independent fixed MQL5 guard | Signed policy distribution |
 | Credential disclosure | `.env` ignored; secret types; constrained logs; no EA secrets | Windows secret store and rotation automation |
 | Dependency/supply-chain compromise | `uv.lock`, minimal dependencies, CI audit, pinned action majors | Provenance/SBOM/signing and hash policy review |
 | Database loss/tamper | Versioned migration and audit model | PostgreSQL roles, encryption, backups, append-only history |
@@ -34,7 +34,8 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Malicious localhost process | Loopback binding and environment-owned bearer token | OS/service isolation and stronger process identity are deferred |
 
 The read-only probe was independently compiled in MetaEditor and run against the intended FIBOGroup
-demo configuration for 0.4.0. The 0.5.0 guard implements demo execution validation and reconciliation,
-but artifact signing, PostgreSQL recovery, stronger process identity, its MetaEditor compile,
-and controlled EURUSD/GBPUSD/USDJPY broker evidence remain pending. Full Windows hardening is
-deferred. Live execution remains forbidden and the node is not production-ready.
+demo configuration for 0.4.0. The 0.5.0 guard has completed controlled EURUSD and GBPUSD DEMO
+execution, reconciliation, replay, kill-switch, and restart validation. Artifact signing,
+PostgreSQL recovery, stronger process identity, reviewed inverse-conversion deployment, controlled
+USDJPY broker evidence, and full Windows hardening remain pending. Live execution remains forbidden
+and the node is not production-ready.

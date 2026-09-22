@@ -7,6 +7,7 @@ from fx_platform.domain.risk import AccountCurrencyRiskCalculator, RiskCalculati
 from tests.helpers import (
     NOW,
     make_conversion_rate,
+    make_inverse_conversion_derivation,
     make_signal,
     make_specification,
 )
@@ -81,6 +82,31 @@ def test_usdjpy_risk_for_usd_account_requires_explicit_directed_rate() -> None:
     assert result is not None
     assert result.failure is None
     assert result.amount == Decimal("0.6700")  # JPY 100 exposure * 0.0067 USD/JPY
+
+
+def test_usdjpy_risk_accepts_directed_rate_from_audited_exact_inverse_derivation() -> None:
+    derivation = make_inverse_conversion_derivation()
+    result = _calculate(
+        signal=make_signal(
+            symbol="USDJPY",
+            entry_price=Decimal("157.213"),
+            stop_loss=Decimal("157.113"),
+            volume=Decimal("0.01"),
+        ),
+        specification=make_specification(
+            symbol="USDJPY",
+            base_currency="USD",
+            quote_currency="JPY",
+            tick_size=Decimal("0.001"),
+            tick_value=Decimal(100),
+            tick_value_currency="JPY",
+        ),
+        conversion_rates=(derivation.conversion_rate,),
+    )
+
+    assert result is not None
+    assert result.failure is None
+    assert result.amount == Decimal(100) * (Decimal(1) / Decimal("157.213"))
 
 
 def test_required_conversion_unavailable_fails_closed() -> None:

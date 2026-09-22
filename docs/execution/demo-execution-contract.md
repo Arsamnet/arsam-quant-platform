@@ -16,6 +16,20 @@ Send `X-FX-Execution-Token` with the environment-owned
 `FX_DEMO_EXECUTION_SECRET`. Python compares it in constant time. Endpoints are registered only in
 validated demo mode and the application refuses non-loopback binding.
 
+## Decision conversion input
+
+Schema 1.0 keeps the existing optional `conversion_rates` field. It also accepts an optional
+`inverse_conversion_quotes` collection. Each item explicitly identifies requested source and target
+currencies, source broker symbol, broker pair base and quote currencies, Bid, Ask, and observed-at
+UTC time; all decimal values remain JSON strings.
+
+The API accepts only an exact reverse pair, derives `source -> target` as `Decimal(1) / ask`, and
+retains method, price side, quote facts, and final directed rate. For JPY-to-USD from USDJPY, Ask is
+used because USD is bought with JPY at the USDJPY Ask. There is no symbol lookup, midpoint/last use,
+arbitrary rate reversal, or cross-rate path. Invalid quotes reject at the schema/domain boundary;
+missing, stale, future, and duplicate applicable rates reject in risk. All provenance participates
+in the request fingerprint.
+
 ## Intent schema 1.0
 
 An intent includes `execution_id`, `intent_id`, `request_id`, `node_id`, `created_at`, `expires_at`,

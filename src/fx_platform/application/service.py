@@ -49,6 +49,38 @@ def _request_fingerprint(command: DecisionCommand) -> str:
             rate.observed_at.isoformat(),
         )
     )
+    inverse_conversion_records = tuple(
+        sorted(
+            (
+                (
+                    derivation.requested_source_currency,
+                    derivation.requested_target_currency,
+                    derivation.broker_quote.source_symbol,
+                    derivation.broker_quote.base_currency,
+                    derivation.broker_quote.quote_currency,
+                    derivation.broker_quote.bid,
+                    derivation.broker_quote.ask,
+                    derivation.broker_quote.observed_at.isoformat(),
+                    derivation.derivation_method.value,
+                    derivation.price_side.value,
+                    derivation.conversion_rate.source_currency,
+                    derivation.conversion_rate.target_currency,
+                    derivation.conversion_rate.rate,
+                    derivation.conversion_rate.observed_at.isoformat(),
+                )
+                for derivation in command.inverse_conversion_derivations
+            ),
+            key=lambda record: tuple(str(value) for value in record),
+        )
+    )
+    inverse_conversion_values = tuple(
+        value
+        for record in inverse_conversion_records
+        for value in (
+            "inverse_conversion_quote",
+            *record,
+        )
+    )
     return _fingerprint(
         command.schema_version,
         command.request_id,
@@ -69,6 +101,7 @@ def _request_fingerprint(command: DecisionCommand) -> str:
         command.account.open_position_count,
         command.account.currency,
         *conversion_values,
+        *inverse_conversion_values,
     )
 
 
@@ -241,7 +274,7 @@ class DecisionService:
             economic_events=calendar.events,
             calendar_available=calendar.available,
             symbol_specification=symbol_specification,
-            conversion_rates=command.conversion_rates,
+            conversion_rates=command.directed_conversion_rates,
         )
         if not risk_decision.approved:
             reasons = tuple(reason.value for reason in risk_decision.reasons)

@@ -31,6 +31,8 @@ def test_v1_schema_requires_replay_and_trace_fields() -> None:
         "account",
     }
     assert schema["properties"]["schema_version"]["const"] == "1.0"
+    assert "conversion_rates" not in schema["required"]
+    assert "inverse_conversion_quotes" not in schema["required"]
 
 
 async def test_unsupported_version_and_short_nonce_are_malformed_requests() -> None:

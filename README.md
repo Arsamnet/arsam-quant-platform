@@ -76,7 +76,9 @@ node ID, and request/market/account timestamps no more than 30 seconds old. All 
 P/L, and volumes on the wire are strings such as `"1.1002"`, never JSON numbers. The detailed
 contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md). Accounts
 default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
-an explicit fresh directed conversion rate.
+an explicit fresh directed conversion rate. Schema 1.0 also accepts a complete exact reverse-pair
+Bid/Ask snapshot in `inverse_conversion_quotes`; for JPY-to-USD from USDJPY it derives `1 / ask`,
+retains provenance in request identity, and never infers a cross rate.
 
 ## Guarded Windows DEMO validation
 
@@ -89,10 +91,10 @@ explicit demo variables in `.env`, then run:
 ./scripts/check-demo-node.ps1
 ```
 
-Compile `ArsamDemoExecutionGuard.mq5` in MetaEditor and require `0 errors / 0 warnings`; compilation
-has not yet been evidenced for 0.5.0. Add `http://127.0.0.1:8000` to MT5 WebRequest allowlisting,
-attach the EA with `EnableDemoExecution=false`, complete every negative gate, then explicitly arm it
-only for the controlled EURUSD 0.01 test. See the
+Compile `ArsamDemoExecutionGuard.mq5` in MetaEditor and require `0 errors / 0 warnings`. Add
+`http://127.0.0.1:8000` to MT5 WebRequest allowlisting, attach the EA with
+`EnableDemoExecution=false`, complete every negative gate, then explicitly arm it only for an
+approved controlled test. See the
 [demo deployment runbook](docs/runbooks/demo-deployment.md) and
 [execution contract](docs/execution/demo-execution-contract.md).
 
@@ -169,7 +171,10 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The implementation is ready for controlled Windows engineering validation, not release. Actual
-MetaEditor compilation, negative terminal evidence, EURUSD/GBPUSD execution/reconciliation/replay/
-restart evidence, and conditional USDJPY conversion evidence are still required. Windows
-infrastructure hardening was deliberately deferred and must not be inferred from this milestone.
+The implementation is ready for continued controlled Windows engineering validation, not release.
+EURUSD and GBPUSD 0.01 DEMO execution/reconciliation/replay/kill/restart paths have been validated;
+the closed trades' net results are execution evidence only, not strategy-performance evidence. A
+USDJPY request without conversion correctly failed with `conversion_rate_unavailable`. Reviewed
+inverse-quote implementation/negative tests and local quality gates are complete. Windows
+deployment and one controlled USDJPY 0.01 DEMO execution/reconciliation remain required before
+considering the final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.
