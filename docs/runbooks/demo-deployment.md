@@ -120,15 +120,16 @@ After EURUSD passes execution, reconciliation, replay, both kill switches, and r
 3. In the normal `/v1/decision` request, explicitly request `JPY -> USD` and supply the exact
    inverse USDJPY pair currencies, Bid, Ask, and observed-at UTC time in
    `inverse_conversion_quotes`.
-4. Confirm the API derives `rate = Decimal(1) / USDJPY ask`. Ask is mandatory because obtaining USD
-   with JPY buys USD at the USDJPY Ask.
+4. Confirm the API derives the stop-loss exposure rate as
+   `rate = Decimal(1) / USDJPY bid`. The reviewed loss-side calibration requires Bid here;
+   positive/profit conversion is separate and corresponds to `1 / ask` in the same evidence.
 5. Retain the request, quote provenance, timestamp, method, side, and resulting directed rate as
    sanitized evidence.
 6. Require the normal freshness/future-skew checks and pass only the directed JPY-to-USD rate into
    `RiskEngine`.
 7. Stop on any pair/currency mismatch, stale/future quote, invalid price, missing conversion, or
-   multiple applicable conversion candidates. Do not use Bid, midpoint, last price, arbitrary
-   inversion, or any cross/multi-hop rate.
+   multiple applicable conversion candidates. Do not substitute Ask, midpoint, last price,
+   arbitrary inversion, or any cross/multi-hop rate for this reviewed stop-loss derivation.
 8. Complete deterministic and risk negative tests while the EA remains disabled.
 9. Only after explicit approval, arm the EA for one 0.01 USDJPY DEMO execution.
 
@@ -166,7 +167,7 @@ and one open position maximum. LIVE remained forbidden.
 
 These figures validate execution and fail-closed paths only; they are not strategy-performance or
 profitability evidence. No USDJPY broker execution has passed. Local inverse-quote implementation,
-deterministic/risk-negative validation, and quality gates completed with 426 tests passing, 96.07%
+deterministic/risk-negative validation, and quality gates completed with 427 tests passing, 96.07%
 branch coverage, Ruff format/check, strict mypy, and pre-commit. Remaining work is Windows
 deployment of this change and one explicitly approved 0.01 USDJPY DEMO execution followed by
 reconciliation, replay, kill-switch, and restart checks as applicable. Only then may final v0.5.0

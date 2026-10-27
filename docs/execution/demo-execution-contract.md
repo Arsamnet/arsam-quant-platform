@@ -23,12 +23,14 @@ Schema 1.0 keeps the existing optional `conversion_rates` field. It also accepts
 currencies, source broker symbol, broker pair base and quote currencies, Bid, Ask, and observed-at
 UTC time; all decimal values remain JSON strings.
 
-The API accepts only an exact reverse pair, derives `source -> target` as `Decimal(1) / ask`, and
-retains method, price side, quote facts, and final directed rate. For JPY-to-USD from USDJPY, Ask is
-used because USD is bought with JPY at the USDJPY Ask. There is no symbol lookup, midpoint/last use,
-arbitrary rate reversal, or cross-rate path. Invalid quotes reject at the schema/domain boundary;
-missing, stale, future, and duplicate applicable rates reject in risk. All provenance participates
-in the request fingerprint.
+The API accepts only an exact reverse pair and, for this risk boundary, derives `source -> target`
+stop-loss exposure as `Decimal(1) / bid`. For JPY-to-USD from USDJPY, the reviewed FIBOGroup
+loss-side calibration therefore uses USDJPY Bid. Positive/profit conversion is distinct and the MT5
+evidence for that case corresponds to `1 / ask`; neither observation establishes a universal rule
+for every JPY-to-USD conversion. The API retains method, Bid price side, quote facts, and final
+directed rate. There is no symbol lookup, midpoint/last use, arbitrary rate reversal, or cross-rate
+path. Invalid quotes reject at the schema/domain boundary; missing, stale, future, and duplicate
+applicable rates reject in risk. All provenance participates in the request fingerprint.
 
 ## Intent schema 1.0
 

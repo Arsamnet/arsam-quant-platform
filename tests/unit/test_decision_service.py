@@ -314,8 +314,8 @@ def test_missing_required_currency_conversion_never_creates_execution_intent() -
 def test_request_fingerprint_covers_every_inverse_quote_and_derivation_fact() -> None:
     baseline = make_inverse_conversion_derivation()
     changed_derivations = (
-        make_inverse_conversion_derivation(bid=Decimal("157.201")),
-        make_inverse_conversion_derivation(ask=Decimal("157.214")),
+        make_inverse_conversion_derivation(bid=Decimal("157.775")),
+        make_inverse_conversion_derivation(ask=Decimal("157.787")),
         make_inverse_conversion_derivation(observed_at=NOW - timedelta(seconds=1)),
         make_inverse_conversion_derivation(
             source_currency="EUR",

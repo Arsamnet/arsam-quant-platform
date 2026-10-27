@@ -126,8 +126,8 @@ def make_inverse_conversion_derivation(
     source_symbol: str = "USDJPY",
     pair_base_currency: str = "USD",
     pair_quote_currency: str = "JPY",
-    bid: Decimal = Decimal("157.202"),
-    ask: Decimal = Decimal("157.213"),
+    bid: Decimal = Decimal("157.776"),
+    ask: Decimal = Decimal("157.786"),
     observed_at: datetime = NOW,
 ) -> InverseConversionRateDerivation:
     """Build an audited exact-inverse conversion derivation."""

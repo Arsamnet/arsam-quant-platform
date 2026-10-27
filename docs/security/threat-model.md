@@ -34,8 +34,9 @@ future control-plane links, backups, CI/dependencies, and software updates.
 | Malicious localhost process | Loopback binding and environment-owned bearer token | OS/service isolation and stronger process identity are deferred |
 
 The read-only probe was independently compiled in MetaEditor and run against the intended FIBOGroup
-demo configuration for 0.4.0. The 0.5.0 guard has completed controlled EURUSD and GBPUSD DEMO
-execution, reconciliation, replay, kill-switch, and restart validation. Artifact signing,
-PostgreSQL recovery, stronger process identity, reviewed inverse-conversion deployment, controlled
-USDJPY broker evidence, and full Windows hardening remain pending. Live execution remains forbidden
-and the node is not production-ready.
+demo configuration for 0.4.0. For the 0.5.0 guard, EURUSD completed the full controlled DEMO
+execution/reconciliation/replay/kill/restart validation. GBPUSD then completed the required
+follow-up execution/protection/reconciliation gate; it did not independently repeat the full
+replay/restart/kill-switch suite. Artifact signing, PostgreSQL recovery, stronger process identity,
+reviewed inverse-conversion deployment, controlled USDJPY broker evidence, and full Windows
+hardening remain pending. Live execution remains forbidden and the node is not production-ready.

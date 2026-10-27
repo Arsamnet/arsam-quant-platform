@@ -12,7 +12,9 @@ Build artifacts and future strategy/update packages require integrity metadata a
 rollback plan. Never promote a paper/demo validation result into live authorization. Do not create
 a Git tag unless the release is explicitly authorized.
 
-For 0.5.0 specifically, controlled EURUSD and GBPUSD validation is complete, but do not merge, tag,
+For 0.5.0 specifically, EURUSD completed the full controlled execution/reconciliation/replay/kill/
+restart validation. GBPUSD completed the required follow-up execution/protection/reconciliation
+gate, but did not independently repeat the full replay/restart/kill-switch suite. Do not merge, tag,
 or publish until the reviewed inverse-conversion change passes all quality gates, is deployed to
 Windows, and the operator reviews sanitized conversion-gated USDJPY execution, reconciliation,
 duplicate, kill-switch, and restart evidence as applicable. Any later MQL5 change must first compile

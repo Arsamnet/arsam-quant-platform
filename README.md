@@ -77,8 +77,10 @@ P/L, and volumes on the wire are strings such as `"1.1002"`, never JSON numbers.
 contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md). Accounts
 default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
 an explicit fresh directed conversion rate. Schema 1.0 also accepts a complete exact reverse-pair
-Bid/Ask snapshot in `inverse_conversion_quotes`; for JPY-to-USD from USDJPY it derives `1 / ask`,
-retains provenance in request identity, and never infers a cross rate.
+Bid/Ask snapshot in `inverse_conversion_quotes`; for inverse conversion of stop-loss exposure from
+JPY to USD using USDJPY it derives the loss-side rate `1 / bid`, retains provenance in request
+identity, and never infers a cross rate. Positive/profit conversion is a separate concept for which
+the reviewed MT5 evidence corresponds to `1 / ask`.
 
 ## Guarded Windows DEMO validation
 
@@ -172,9 +174,11 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 ## Project status and next work
 
 The implementation is ready for continued controlled Windows engineering validation, not release.
-EURUSD and GBPUSD 0.01 DEMO execution/reconciliation/replay/kill/restart paths have been validated;
-the closed trades' net results are execution evidence only, not strategy-performance evidence. A
-USDJPY request without conversion correctly failed with `conversion_rate_unavailable`. Reviewed
-inverse-quote implementation/negative tests and local quality gates are complete. Windows
-deployment and one controlled USDJPY 0.01 DEMO execution/reconciliation remain required before
-considering the final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.
+EURUSD completed the full 0.01 DEMO execution/reconciliation/replay/kill/restart validation. GBPUSD
+then completed the required follow-up execution/protection/reconciliation gate; it did not repeat
+the full replay/restart/kill-switch suite. The closed trades' net results are execution evidence
+only, not strategy-performance evidence. A USDJPY request without conversion correctly failed with
+`conversion_rate_unavailable`. Reviewed inverse-quote implementation/negative tests and local
+quality gates are complete. Windows deployment and one controlled USDJPY 0.01 DEMO
+execution/reconciliation remain required before considering the final v0.5.0 merge/tag. Windows
+infrastructure hardening remains deferred.

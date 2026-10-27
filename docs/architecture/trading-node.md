@@ -33,9 +33,11 @@ the exact bytes. Missing/malformed signatures reject and Python uses constant-ti
 
 USDJPY still requires a fresh, explicit JPY-to-USD rate for the reviewed static tick-value
 semantics. A caller may supply that directed rate or request the reviewed exact inverse derivation
-from a complete USDJPY quote, using `1 / ask`. Automatic inversion, arbitrary reverse-rate
-inference, and cross rates remain forbidden. Accepted quote provenance is included in the request
-fingerprint.
+from a complete USDJPY quote. Because this boundary calculates stop-loss exposure, the reviewed
+loss-side derivation uses `1 / bid`; the separate positive/profit conversion evidence corresponds to
+`1 / ask`. This is not a universal rule that JPY-to-USD always uses Bid. Automatic inversion,
+arbitrary reverse-rate inference, and cross rates remain forbidden. Accepted quote provenance is
+included in the request fingerprint.
 
 ## Demo execution API
 

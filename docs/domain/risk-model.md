@@ -49,10 +49,13 @@ fresh directed conversion used by current risk semantics.
 The only reviewed derivation is an explicit exact-pair inverse. The request supplies requested
 source/target currencies, source symbol, pair base/quote currencies, Bid, Ask, and observed-at time.
 Pair base must equal the requested target and pair quote must equal the requested source. For
-`JPY -> USD` from `USDJPY`, `rate = Decimal(1) / ask` because obtaining USD with JPY buys USD at the
-USDJPY Ask. The immutable result retains all quote facts, method `inverse_exact_pair`, side `ask`,
-and the directed rate. The domain performs no lookup. It never uses Bid, midpoint, last price,
-arbitrary reverse-rate inference, or a cross/multi-hop path.
+inverse conversion of stop-loss exposure from the quote/profit currency into the account currency,
+the reviewed FIBOGroup calibration uses the loss-side conversion. For `JPY -> USD` from
+`USDJPY`, `rate = Decimal(1) / bid`. This is deliberately narrower than a universal FX conversion
+rule: positive/profit conversion is a separate concept, and the reviewed MT5 evidence for it
+corresponds to `1 / ask`. The immutable risk derivation retains all quote facts, method
+`inverse_exact_pair`, side `bid`, and the directed rate. The domain performs no lookup and never
+uses midpoint, last price, arbitrary reverse-rate inference, or a cross/multi-hop path.
 
 ## Fail-closed rule order
 

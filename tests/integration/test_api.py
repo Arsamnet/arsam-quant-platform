@@ -53,8 +53,8 @@ def _usdjpy_payload() -> dict[str, object]:
     market.update(
         {
             "symbol": "USDJPY",
-            "bid": "157.202",
-            "ask": "157.213",
+            "bid": "157.776",
+            "ask": "157.786",
             "previous_close": "156.868",
         }
     )
@@ -68,8 +68,8 @@ def _inverse_usdjpy_quote(*, observed_at: str | None = None) -> dict[str, object
         "source_symbol": "USDJPY",
         "pair_base_currency": "USD",
         "pair_quote_currency": "JPY",
-        "bid": "157.202",
-        "ask": "157.213",
+        "bid": "157.776",
+        "ask": "157.786",
         "observed_at": observed_at or NOW.isoformat(),
     }
 
@@ -329,7 +329,7 @@ async def test_direct_and_derived_applicable_rates_reject_as_ambiguous() -> None
         {"bid": "-1"},
         {"ask": "0"},
         {"ask": "-1"},
-        {"bid": "157.214"},
+        {"bid": "157.787"},
         {"source_symbol": "EURJPY"},
         {"source_currency": "jpy"},
     ],

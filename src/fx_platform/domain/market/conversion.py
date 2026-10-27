@@ -75,7 +75,7 @@ class CurrencyConversionDerivationMethod(StrEnum):
 class BrokerPriceSide(StrEnum):
     """Broker quote side used by a reviewed conversion derivation."""
 
-    ASK = "ask"
+    BID = "bid"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -101,10 +101,10 @@ class InverseConversionRateDerivation:
             raise ValueError("broker quote must be the exact inverse of the requested conversion")
         if self.derivation_method is not CurrencyConversionDerivationMethod.INVERSE_EXACT_PAIR:
             raise ValueError("unsupported currency conversion derivation method")
-        if self.price_side is not BrokerPriceSide.ASK:
-            raise ValueError("inverse exact-pair conversion must use the broker Ask")
+        if self.price_side is not BrokerPriceSide.BID:
+            raise ValueError("inverse exact-pair risk conversion must use the broker Bid")
         try:
-            expected_rate = Decimal(1) / self.broker_quote.ask
+            expected_rate = Decimal(1) / self.broker_quote.bid
         except DecimalException as error:
             raise ValueError("inverse conversion rate could not be derived") from error
         if (
@@ -122,7 +122,7 @@ def derive_inverse_conversion_rate(
     target_currency: str,
     broker_quote: BrokerFxQuote,
 ) -> InverseConversionRateDerivation:
-    """Derive ``source -> target`` only from the explicitly supplied exact reverse pair Ask."""
+    """Derive a stop-loss risk rate from the explicit exact reverse pair Bid."""
     _require_currency_code(source_currency, "source_currency")
     _require_currency_code(target_currency, "target_currency")
     if source_currency == target_currency:
@@ -133,7 +133,7 @@ def derive_inverse_conversion_rate(
     ):
         raise ValueError("broker quote must be the exact inverse of the requested conversion")
     try:
-        rate = Decimal(1) / broker_quote.ask
+        rate = Decimal(1) / broker_quote.bid
     except DecimalException as error:
         raise ValueError("inverse conversion rate could not be derived") from error
     require_positive_decimal(rate, "derived conversion rate")
@@ -148,7 +148,7 @@ def derive_inverse_conversion_rate(
         requested_target_currency=target_currency,
         broker_quote=broker_quote,
         derivation_method=CurrencyConversionDerivationMethod.INVERSE_EXACT_PAIR,
-        price_side=BrokerPriceSide.ASK,
+        price_side=BrokerPriceSide.BID,
         conversion_rate=conversion_rate,
     )
 

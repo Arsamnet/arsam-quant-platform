@@ -16,7 +16,7 @@ from fx_platform.domain.market import (
 from tests.helpers import NOW, make_inverse_conversion_derivation
 
 
-def test_exact_inverse_derivation_uses_usdjpy_ask_and_retains_provenance() -> None:
+def test_exact_inverse_risk_derivation_uses_usdjpy_bid_and_retains_provenance() -> None:
     derivation = make_inverse_conversion_derivation()
 
     assert derivation.requested_source_currency == "JPY"
@@ -24,23 +24,23 @@ def test_exact_inverse_derivation_uses_usdjpy_ask_and_retains_provenance() -> No
     assert derivation.broker_quote.source_symbol == "USDJPY"
     assert derivation.broker_quote.base_currency == "USD"
     assert derivation.broker_quote.quote_currency == "JPY"
-    assert derivation.broker_quote.bid == Decimal("157.202")
-    assert derivation.broker_quote.ask == Decimal("157.213")
+    assert derivation.broker_quote.bid == Decimal("157.776")
+    assert derivation.broker_quote.ask == Decimal("157.786")
     assert derivation.broker_quote.observed_at == NOW
     assert derivation.derivation_method is CurrencyConversionDerivationMethod.INVERSE_EXACT_PAIR
-    assert derivation.price_side is BrokerPriceSide.ASK
+    assert derivation.price_side is BrokerPriceSide.BID
     assert derivation.conversion_rate.source_currency == "JPY"
     assert derivation.conversion_rate.target_currency == "USD"
     assert derivation.conversion_rate.observed_at == NOW
-    assert derivation.conversion_rate.rate == Decimal(1) / Decimal("157.213")
-    assert derivation.conversion_rate.rate != Decimal(1) / Decimal("157.202")
+    assert derivation.conversion_rate.rate == Decimal(1) / Decimal("157.776")
+    assert derivation.conversion_rate.rate != Decimal(1) / Decimal("157.786")
 
 
 def test_inverse_quote_and_derivation_are_immutable() -> None:
     derivation = make_inverse_conversion_derivation()
 
     with pytest.raises(FrozenInstanceError):
-        derivation.price_side = BrokerPriceSide.ASK
+        derivation.price_side = BrokerPriceSide.BID
     with pytest.raises(FrozenInstanceError):
         derivation.broker_quote.ask = Decimal(1)
 
@@ -56,7 +56,7 @@ def test_inverse_quote_and_derivation_are_immutable() -> None:
         {"bid": Decimal(-1)},
         {"ask": Decimal(0)},
         {"ask": Decimal(-1)},
-        {"bid": Decimal("157.214")},
+        {"bid": Decimal("157.787")},
         {"observed_at": NOW.replace(tzinfo=None)},
         {"observed_at": NOW.astimezone(timezone(timedelta(hours=1)))},
     ],
@@ -68,8 +68,8 @@ def test_broker_fx_quote_rejects_invalid_or_inconsistent_facts(
         "source_symbol": "USDJPY",
         "base_currency": "USD",
         "quote_currency": "JPY",
-        "bid": Decimal("157.202"),
-        "ask": Decimal("157.213"),
+        "bid": Decimal("157.776"),
+        "ask": Decimal("157.786"),
         "observed_at": NOW,
     }
     values.update(changes)
@@ -121,7 +121,7 @@ def test_derivation_rejects_a_rate_that_does_not_match_its_quote_provenance() ->
         {"requested_source_currency": "USD", "requested_target_currency": "USD"},
         {"requested_target_currency": "EUR"},
         {"derivation_method": "unsupported"},
-        {"price_side": "bid"},
+        {"price_side": "ask"},
     ],
 )
 def test_derivation_value_rejects_unreviewed_or_inconsistent_construction(
@@ -145,7 +145,7 @@ def test_derivation_value_rejects_unreviewed_or_inconsistent_construction(
 @pytest.mark.parametrize(
     ("bid", "ask"),
     [
-        (Decimal(1), Decimal("1e999999999")),
+        (Decimal("1e999999999"), Decimal("1e999999999")),
         (Decimal("1e-1000000000"), Decimal("1e-999999999")),
     ],
 )

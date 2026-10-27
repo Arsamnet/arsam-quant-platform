@@ -8,8 +8,9 @@ uses Semantic Versioning during pre-production.
 ### Added
 
 - Explicit audited exact-pair inverse conversion input for schema 1.0, retaining broker symbol,
-  pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Ask provenance, and the final
-  directed rate in deterministic request identity. Cross-rate inference remains forbidden.
+  pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Bid loss-side provenance, and the
+  final directed risk rate in deterministic request identity. Cross-rate inference remains
+  forbidden.
 - Immutable schema-1.0 execution intents/results with request/risk fingerprints, market-only order
   type, exact decimal strings, UTC times, strategy/risk identities, and explicit reconciliation.
 - Atomic synchronized SQLite DEMO outbox with durable execution/intent/request/nonce/fingerprint
@@ -25,9 +26,10 @@ uses Semantic Versioning during pre-production.
 ### Changed
 
 - Prepare development version 0.5.0 while preserving paper behavior and deterministic backtests.
-- Complete controlled 0.01 EURUSD and GBPUSD FIBOGroup DEMO execution, protection,
-  reconciliation, replay, kill-switch, and restart validation. This is execution-path evidence, not
-  strategy-profitability evidence.
+- Complete the full controlled EURUSD execution/reconciliation/replay/kill/restart validation, then
+  complete the required GBPUSD follow-up execution/protection/reconciliation gate. This is
+  execution-path evidence, not strategy-profitability evidence; GBPUSD did not independently repeat
+  the full replay/restart/kill-switch suite.
 - Confirm the USDJPY missing-conversion negative gate returns `conversion_rate_unavailable` without
   execution. USDJPY inverse-conversion broker execution remains pending.
 - Permit `demo` startup only with explicit enablement, exact reviewed identity/limits, a 32+

@@ -33,7 +33,7 @@ Infrastructure uncertainty cannot become approval, and all conversion inputs are
 
 Hand-verifiable pair examples and every conversion failure state have deterministic unit coverage.
 
-## Amendment / v0.5.0 — 2026-09-22
+## Amendment / v0.5.0 — 2026-10-27
 
 Automatic or unbounded rate inversion remains forbidden, as does every multi-hop or cross-rate
 derivation. Schema 1.0 now permits a caller to supply all facts for one exact reverse broker pair
@@ -42,14 +42,18 @@ data lookup and not permission to reverse an arbitrary `CurrencyConversionRate`.
 
 The accepted relation is exact: broker pair base must equal the requested target currency and pair
 quote must equal the requested source currency. The source symbol must match those pair currencies.
-For JPY-to-USD using USDJPY, the directed rate is `Decimal(1) / USDJPY ask`: obtaining USD with JPY
-buys USD at the USDJPY Ask. Bid, midpoint, last price, arbitrary inversion, and cross rates are not
-accepted.
+This milestone's derivation boundary is specifically for inverse conversion of stop-loss exposure
+from the quote/profit currency into the account currency. The reviewed FIBOGroup loss-side
+calibration for JPY-to-USD using USDJPY is `Decimal(1) / USDJPY bid`. Positive/profit conversion is
+a different concept; the reviewed MT5 evidence for it corresponds to `1 / USDJPY ask`. Neither is a
+universal rule that JPY-to-USD always uses one price side. Midpoint, last price, arbitrary
+inversion, and cross rates are not accepted.
 
 The immutable derivation retains requested currencies, source broker symbol, pair currencies, Bid,
-Ask, observation time, `inverse_exact_pair` method, `ask` side, and final directed rate. The caller
-supplies every fact; the domain performs no broker or network call. The application passes only the
-resulting directed rates into `RiskEngine`, preserving the original risk boundary.
+Ask, observation time, `inverse_exact_pair` method, `bid` loss-side provenance, and final directed
+rate. The caller supplies every fact; the domain performs no broker or network call. The
+application passes only the resulting directed rates into `RiskEngine`, preserving the original
+risk boundary.
 
 Normal freshness and future-skew checks remain mandatory. Invalid identity, price, currency, or
 timestamp data rejects at the input boundary. Missing, stale, future, or multiple applicable direct

@@ -89,8 +89,8 @@ def test_usdjpy_risk_accepts_directed_rate_from_audited_exact_inverse_derivation
     result = _calculate(
         signal=make_signal(
             symbol="USDJPY",
-            entry_price=Decimal("157.213"),
-            stop_loss=Decimal("157.113"),
+            entry_price=Decimal("157.776"),
+            stop_loss=Decimal("157.676"),
             volume=Decimal("0.01"),
         ),
         specification=make_specification(
@@ -106,7 +106,7 @@ def test_usdjpy_risk_accepts_directed_rate_from_audited_exact_inverse_derivation
 
     assert result is not None
     assert result.failure is None
-    assert result.amount == Decimal(100) * (Decimal(1) / Decimal("157.213"))
+    assert result.amount == Decimal(100) * (Decimal(1) / Decimal("157.776"))
 
 
 def test_required_conversion_unavailable_fails_closed() -> None:
