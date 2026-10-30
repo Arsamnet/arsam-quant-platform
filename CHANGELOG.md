@@ -13,8 +13,8 @@ uses Semantic Versioning during pre-production.
   endpoint, no tool authority, disabled response storage, bounded timeout, and fail-closed errors.
 - Read-only MQL5 autonomous snapshot probe exporting DEMO account state, daily realized P/L,
   Bid/Ask, previous D1 close, decision-bar identity, trade mode, and broker-relative tick age.
-- Snapshot-only validation CLI, Windows autonomous startup/install scripts, ADR-0023, and an
-  autonomous DEMO runbook.
+- Snapshot-only and AI-only validation CLI modes, Windows autonomous startup/install scripts,
+  ADR-0023, and an autonomous DEMO runbook.
 - Explicit audited exact-pair inverse conversion input for schema 1.0, retaining broker symbol,
   pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Bid loss-side provenance, and the
   final directed risk rate in deterministic request identity. Cross-rate inference remains
@@ -59,6 +59,8 @@ uses Semantic Versioning during pre-production.
 
 ### Fixed
 
+- Normalize autonomous MQL5 account values with `ACCOUNT_CURRENCY_DIGITS` and market prices with
+  each symbol's `SYMBOL_DIGITS` instead of exporting binary floating-point residue.
 - Block the unsafe USDJPY one-tick stop found during disabled-EA preflight; no order was placed.
 - Accept successful FIBO MQL5 `OrderCheck` semantics (`bool=true`, `GetLastError()=0`,
   `check.retcode=0`) while preserving trade-server retcode handling for `OrderSend`.
