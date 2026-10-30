@@ -27,17 +27,17 @@ def test_autonomous_probe_exports_required_fail_closed_inputs() -> None:
     source = AUTONOMOUS_PROBE.read_text(encoding="utf-8")
 
     for field in (
-        '"balance"',
-        '"equity"',
-        '"daily_realized_pnl"',
-        '"open_position_count"',
-        '"bid"',
-        '"ask"',
-        '"previous_close"',
-        '"decision_bar_time"',
-        '"tick_age_seconds"',
+        "balance",
+        "equity",
+        "daily_realized_pnl",
+        "open_position_count",
+        "bid",
+        "ask",
+        "previous_close",
+        "decision_bar_time",
+        "tick_age_seconds",
     ):
-        assert field in source
+        assert f'\\\"{field}\\\"' in source
 
     assert "HistorySelect(" in source
     assert "SymbolInfoTick(" in source
