@@ -1,9 +1,10 @@
 # Arsam Quant Platform
 
 A production-oriented engineering foundation for a measurable, reproducible, risk-controlled,
-AI-assisted FX platform. Version **0.5.0** adds guarded real execution against one exact FIBOGroup
-DEMO environment. It is disabled by default, limited to 0.01 lot and one position, and is not
-production-ready. Live trading remains impossible.
+AI-assisted FX platform. Version **0.6.0** builds on the reviewed v0.5 FIBOGroup DEMO execution
+boundary with a guarded autonomous decision supervisor, a concrete structured OpenAI advisory
+client, and a separate read-only MT5 snapshot probe. Autonomous DEMO is disabled by default,
+limited to 0.01 lot and one position, and is not production-ready. Live trading remains impossible.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
 statistical edge. Its stop is expressed as 100 reviewed symbol ticks, not one cross-symbol absolute
@@ -14,6 +15,8 @@ price distance.
 - `paper` remains the safe default. `demo` starts only with explicit enablement, locked identity,
   and an environment-owned secret. `live` always fails startup.
 - AI is disabled by default, advisory only, schema constrained, and cannot create an order.
+- Autonomous DEMO requires explicit enablement plus `FX_AI_MODE=openai` and
+  `FX_AI_REQUIRED=true`; provider/schema failure therefore fails closed before execution.
 - Risk rejection prevents construction and execution of an intent.
 - Paper uses the in-memory fake. Demo approvals enter a synchronized local SQLite outbox; the API
   never calls MT5 directly.
@@ -101,6 +104,28 @@ approved controlled test. See the
 [demo deployment runbook](docs/runbooks/demo-deployment.md) and
 [execution contract](docs/execution/demo-execution-contract.md).
 
+## Guarded autonomous DEMO
+
+The v0.6 autonomous path keeps market observation, AI advice, risk approval, and broker execution
+as separate trust boundaries. A read-only MT5 EA exports fresh local account/market snapshots;
+Python validates them, evaluates the deterministic strategy, requests structured OpenAI advice,
+passes the candidate through the existing RiskEngine, and may queue one DEMO intent. The existing
+execution guard remains the sole `OrderSend` boundary.
+
+The supervisor blocks while durable execution state is unresolved or the account reports an open
+position, processes a symbol at most once per observed bar in the running process, and stops after
+the first queued intent in a cycle.
+
+Before any autonomous broker test, compile the new read-only probe in Windows MetaEditor and
+require `0 errors, 0 warnings`, then validate the snapshot without AI or execution:
+
+```powershell
+uv run fx-autonomous-demo --validate-snapshot
+```
+
+See [the autonomous DEMO runbook](docs/runbooks/autonomous-demo.md). The current
+`PreviousCloseMomentumStrategy` remains illustrative and has no profitability claim.
+
 ## Deterministic backtest
 
 Run the committed synthetic EURUSD fixture locally:
@@ -174,15 +199,13 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The implementation is ready for continued controlled Windows engineering validation, not release.
-EURUSD completed the full 0.01 DEMO execution/reconciliation/replay/kill/restart validation. GBPUSD
-then completed the required follow-up execution/protection/reconciliation gate; it did not repeat
-the full replay/restart/kill-switch suite. The closed trades' net results are execution evidence
-only, not strategy-performance evidence. A USDJPY request without conversion correctly failed with
-`conversion_rate_unavailable`. The controlled USDJPY 0.01 DEMO execution/reconciliation has now
-passed, leaving zero open positions and zero pending orders after manual close. That test exposed
-a stale-interactive-submission gap: the broker-safe EA refreshed market price, but the reviewed
-intent price could drift before send. The branch now adds a file-based fail-closed USDJPY
-submission harness plus an independent MQL5 intent-price-drift gate on both initial and final ticks.
-The changed EA source still requires a fresh Windows MetaEditor compile and a negative drift-gate
-validation before final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.
+The v0.5 guarded DEMO execution path has completed controlled EURUSD, GBPUSD, and USDJPY
+execution/reconciliation validation, including the post-remediation USDJPY drift rejection gate.
+Version 0.6 now introduces the autonomous engineering layer: structured OpenAI advisory, a
+read-only continuous MT5 account/market snapshot, and a fail-closed supervisor that feeds only
+risk-approved work into the existing durable outbox.
+
+The new v0.6 code still requires cross-platform CI plus fresh Windows MetaEditor compilation and
+runtime validation of `ArsamAutonomousSnapshotProbe.mq5` before autonomous DEMO burn-in. The
+current strategy remains an architecture fixture rather than a statistically validated trading
+edge. LIVE remains forbidden.
