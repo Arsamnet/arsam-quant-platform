@@ -264,4 +264,3 @@ source.
 - Durable counts changed only from `position_confirmed=3, rejected=1` to
   `position_confirmed=3, rejected=2`; no unresolved state remained.
 - The EA was returned to `EnableDemoExecution=false` immediately after the negative test.
-
