@@ -17,7 +17,7 @@ from fx_platform.application.autonomy import (
 )
 from fx_platform.application.models import DecisionOutcome, DecisionOutcomeStatus
 from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
-from tests.helpers import FixedClock, NOW
+from tests.helpers import NOW, FixedClock
 
 
 class _Source:
@@ -86,9 +86,9 @@ def _snapshot(*markets: AutonomousMarketObservation) -> AutonomousSnapshot:
         account=AccountSnapshot(
             account_id="fibo-demo-usd-local",
             observed_at=NOW,
-            balance=Decimal("10000"),
-            equity=Decimal("10000"),
-            daily_realized_pnl=Decimal("0"),
+            balance=Decimal(10000),
+            equity=Decimal(10000),
+            daily_realized_pnl=Decimal(0),
             open_position_count=0,
             currency="USD",
         ),
@@ -196,9 +196,9 @@ def test_supervisor_rejects_stale_snapshot_before_decision() -> None:
         account=AccountSnapshot(
             account_id="fibo-demo-usd-local",
             observed_at=NOW - timedelta(seconds=16),
-            balance=Decimal("10000"),
-            equity=Decimal("10000"),
-            daily_realized_pnl=Decimal("0"),
+            balance=Decimal(10000),
+            equity=Decimal(10000),
+            daily_realized_pnl=Decimal(0),
             open_position_count=0,
             currency="USD",
         ),
