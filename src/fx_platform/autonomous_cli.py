@@ -46,9 +46,7 @@ def read_fresh_snapshot(settings: Settings) -> AutonomousSnapshot:
     now = SystemClock().now()
     if snapshot.acquired_at - now > timedelta(seconds=2):
         raise AutonomousSnapshotError("autonomous snapshot timestamp is in the future")
-    if now - snapshot.acquired_at > timedelta(
-        seconds=settings.autonomous_max_snapshot_age_seconds
-    ):
+    if now - snapshot.acquired_at > timedelta(seconds=settings.autonomous_max_snapshot_age_seconds):
         raise AutonomousSnapshotError("autonomous snapshot is stale")
     if snapshot.account.observed_at != snapshot.acquired_at:
         raise AutonomousSnapshotError("account observation does not match snapshot acquisition")
