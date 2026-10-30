@@ -95,8 +95,30 @@ def test_openai_mode_requires_environment_owned_credentials() -> None:
         openai_api_key=SecretStr("test-placeholder"),
         openai_model="configured-model",
     )
-    with pytest.raises(RuntimeError, match="adapter boundary"):
-        build_runtime(settings)
+    assert build_runtime(settings).service is not None
+
+
+def test_autonomous_demo_requires_guarded_demo_and_required_openai() -> None:
+    with pytest.raises(ValidationError, match="DEMO"):
+        _settings(
+            autonomous_demo_enabled=True,
+            ai_mode=AiMode.OPENAI,
+            ai_required=True,
+            openai_api_key=SecretStr("test-placeholder"),
+            openai_model="configured-model",
+        )
+
+    with pytest.raises(ValidationError, match="OpenAI"):
+        _demo_settings(autonomous_demo_enabled=True)
+
+    settings = _demo_settings(
+        autonomous_demo_enabled=True,
+        ai_mode=AiMode.OPENAI,
+        ai_required=True,
+        openai_api_key=SecretStr("test-placeholder"),
+        openai_model="configured-model",
+    )
+    assert settings.autonomous_demo_enabled
 
 
 @pytest.mark.parametrize(
