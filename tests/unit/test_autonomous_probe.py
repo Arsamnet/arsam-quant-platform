@@ -26,6 +26,7 @@ def test_autonomous_probe_contains_no_trade_mutation_api() -> None:
 def test_autonomous_probe_exports_required_fail_closed_inputs() -> None:
     source = AUTONOMOUS_PROBE.read_text(encoding="utf-8")
 
+    normalized_source = source.replace(r'\"', '"')
     for field in (
         "balance",
         "equity",
@@ -37,7 +38,7 @@ def test_autonomous_probe_exports_required_fail_closed_inputs() -> None:
         "decision_bar_time",
         "tick_age_seconds",
     ):
-        assert f'\\\"{field}\\\"' in source
+        assert f'"{field}"' in normalized_source
 
     assert "HistorySelect(" in source
     assert "SymbolInfoTick(" in source
