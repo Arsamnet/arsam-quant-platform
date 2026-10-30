@@ -1,18 +1,25 @@
 """Windows/local autonomous DEMO supervisor entry point."""
 
 import argparse
+import json
 import logging
 import time
 from datetime import timedelta
+from uuid import UUID, uuid5
 
+from fx_platform.adapters.ai import OpenAiAdvisor, OpenAiResponsesClient, StructuredAiClient
 from fx_platform.adapters.clock import SystemClock
+from fx_platform.adapters.market import bootstrap_symbol_specifications
 from fx_platform.adapters.market.autonomous import FileAutonomousSnapshotSource
 from fx_platform.application.autonomy import AutonomousDemoSupervisor, AutonomousSnapshotError
 from fx_platform.application.factory import build_runtime
-from fx_platform.config import Settings
+from fx_platform.config import AiMode, Settings
+from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
+from fx_platform.domain.strategy import PreviousCloseMomentumStrategy
 from fx_platform.observability import configure_logging
 
 logger = logging.getLogger(__name__)
+_AI_VALIDATION_NAMESPACE = UUID("d613d8ca-e9ef-4df4-94e1-d7d54b4356ae")
 
 
 def build_snapshot_source(settings: Settings) -> FileAutonomousSnapshotSource:
@@ -47,6 +54,65 @@ def build_autonomous_supervisor(settings: Settings) -> AutonomousDemoSupervisor:
     )
 
 
+def validate_ai_only(
+    settings: Settings,
+    *,
+    symbol: str,
+    ai_client: StructuredAiClient | None = None,
+) -> AiAssessment:
+    """Validate one real OpenAI advisory without risk, outbox, or execution access."""
+    if settings.ai_mode is not AiMode.OPENAI:
+        raise RuntimeError("AI-only validation requires FX_AI_MODE=openai")
+    api_key = settings.openai_api_key
+    model = settings.openai_model
+    if api_key is None or model is None:
+        raise RuntimeError("validated OpenAI settings unexpectedly missing")
+    if symbol not in settings.demo_allowed_symbols:
+        raise RuntimeError(f"AI validation symbol is not in the reviewed allowlist: {symbol}")
+
+    snapshot = build_snapshot_source(settings).read()
+    observation = next(
+        (item for item in snapshot.markets if item.market.symbol == symbol),
+        None,
+    )
+    if observation is None:
+        raise RuntimeError(f"AI validation snapshot has no market observation for {symbol}")
+
+    specification = bootstrap_symbol_specifications(settings.demo_allowed_symbols).get(symbol)
+    if specification is None:
+        raise RuntimeError(f"symbol specification unavailable for AI validation: {symbol}")
+
+    strategy = PreviousCloseMomentumStrategy()
+    identity = (
+        f"ai-validation:{settings.active_node_id}:{symbol}:"
+        f"{observation.decision_bar_time.isoformat()}"
+    )
+    signal_id = uuid5(_AI_VALIDATION_NAMESPACE, identity + ":signal")
+    decision = strategy.evaluate(
+        observation.market,
+        specification,
+        signal_id=signal_id,
+        evaluated_at=snapshot.acquired_at,
+    )
+    if decision.candidate is None:
+        raise RuntimeError(
+            "AI-only validation requires a deterministic strategy candidate for the current snapshot"
+        )
+
+    client = ai_client or OpenAiResponsesClient(
+        api_key=api_key.get_secret_value(),
+        model=model,
+        timeout_seconds=settings.openai_timeout_seconds,
+    )
+    advisor = OpenAiAdvisor(client, model)
+    return advisor.assess(
+        assessment_id=uuid5(_AI_VALIDATION_NAMESPACE, identity + ":assessment"),
+        evaluated_at=snapshot.acquired_at,
+        market=observation.market,
+        signal=decision.candidate,
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run guarded AI-assisted autonomous trading against the reviewed DEMO account."
@@ -61,6 +127,12 @@ def _parser() -> argparse.ArgumentParser:
         "--validate-snapshot",
         action="store_true",
         help="Validate the local MT5 snapshot and exit without AI, risk, or execution.",
+    )
+    mode.add_argument(
+        "--validate-ai",
+        metavar="SYMBOL",
+        choices=("EURUSD", "GBPUSD", "USDJPY"),
+        help="Call OpenAI for one symbol and exit without risk, outbox, or execution.",
     )
     return parser
 
@@ -80,6 +152,30 @@ def main() -> None:
                 "open_position_count": snapshot.account.open_position_count,
             },
         )
+        return
+
+    if args.validate_ai is not None:
+        assessment = validate_ai_only(settings, symbol=args.validate_ai)
+        output = {
+            "mode": "ai_only_validation",
+            "symbol": args.validate_ai,
+            "status": assessment.status.value,
+            "direction_preference": (
+                None
+                if assessment.direction_preference is None
+                else assessment.direction_preference.value
+            ),
+            "confidence": str(assessment.confidence),
+            "market_regime": assessment.market_regime,
+            "uncertainty": str(assessment.uncertainty),
+            "reasoning_tags": list(assessment.reasoning_tags),
+            "risk_engine_called": False,
+            "outbox_called": False,
+            "execution_called": False,
+        }
+        print(json.dumps(output, separators=(",", ":"), sort_keys=True))
+        if assessment.status is not AiAssessmentStatus.AVAILABLE:
+            raise SystemExit(3)
         return
 
     supervisor = build_autonomous_supervisor(settings)
