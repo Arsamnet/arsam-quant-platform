@@ -121,6 +121,9 @@ require `0 errors, 0 warnings`, then validate the snapshot without AI or executi
 
 ```powershell
 uv run fx-autonomous-demo --validate-snapshot
+
+# Calls OpenAI for one symbol only; does not construct RiskEngine/outbox/execution.
+uv run fx-autonomous-demo --validate-ai EURUSD
 ```
 
 See [the autonomous DEMO runbook](docs/runbooks/autonomous-demo.md). The current
