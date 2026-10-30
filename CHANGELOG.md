@@ -34,7 +34,8 @@ uses Semantic Versioning during pre-production.
   execution-path evidence, not strategy-profitability evidence; GBPUSD did not independently repeat
   the full replay/restart/kill-switch suite.
 - Confirm the USDJPY missing-conversion negative gate returns `conversion_rate_unavailable` without
-  execution. USDJPY inverse-conversion broker execution remains pending.
+  execution, then complete the controlled inverse-conversion USDJPY DEMO execution/reconciliation
+  path and the post-remediation `intent_price_drift_exceeded` negative gate without another order.
 - Express the illustrative strategy stop as 100 reviewed symbol ticks through the resolved
   `SymbolSpecification`, preserving EURUSD/GBPUSD `0.00100` stops while using `0.100` for USDJPY.
 - Validate MQL5 broker-side SL/TP direction and stops/freeze distance against Bid for BUY and Ask
@@ -66,9 +67,9 @@ uses Semantic Versioning during pre-production.
   constant-time Python token verification without logging headers, secrets, or account login.
 - Treat unknown, failed, claimed, submitted, filled, and partial reconciliation as blocking; compare
   reported symbol/side/volume/price/SL/TP against the claimed intent and reject overfills/conflicts.
-- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready. Reviewed
-  inverse-conversion validation and controlled USDJPY DEMO evidence remain release blockers; any
-  MQL5 change requires a fresh compile/install gate.
+- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready and LIVE remains
+  forbidden. The reviewed v0.5.0 DEMO execution, inverse-conversion, compile/hash, and negative-drift
+  validation gates are complete; any future MQL5 change requires a fresh deploy/compile/hash gate.
 
 ## [0.4.0] - 2026-09-06
 
