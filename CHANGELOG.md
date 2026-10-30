@@ -22,6 +22,9 @@ uses Semantic Versioning during pre-production.
   `OrderCheck` gates, FILE_COMMON journal, magic/comment correlation, and no automatic retry.
 - Windows interactive deployment/start/check/install scripts, ADR-0022, execution/reconciliation
   documentation, first-trade/negative/replay/kill/restart runbook, and comprehensive tests.
+- Version-controlled USDJPY intent-price-drift negative-test harness with a single synthetic DEMO
+  decision, a >10-point drift proof, an independent pre-OrderCheck SELL stop-direction backstop,
+  durable rejection/count verification, and explicit no-retry handling.
 
 ### Changed
 
