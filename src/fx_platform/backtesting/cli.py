@@ -50,7 +50,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             strategy_version=strategy.version,
             parameters={
                 "volume": strategy.volume,
-                "stop_distance": strategy.stop_distance,
+                "stop_distance_ticks": strategy.stop_distance_ticks,
                 "reward_to_risk": strategy.reward_to_risk,
             },
         )

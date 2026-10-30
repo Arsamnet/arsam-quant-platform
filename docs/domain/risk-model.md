@@ -12,6 +12,10 @@ overridden by strategy or AI output.
 - Supported symbols and their reviewed static specifications are configured explicitly.
 - `SymbolSpecification` holds the symbol currencies, contract size, tick size/value semantics,
   volume grid, price digits, and maximum spread in ticks without depending on MT5.
+- The illustrative previous-close strategy receives that already-resolved specification and derives
+  its default stop as `tick_size * Decimal("100")`; its reward-to-risk value of 2 derives a 200-tick
+  target. It rejects a market/specification symbol mismatch and never infers pip conventions from a
+  symbol name or digit count.
 - Per-trade stop exposure starts with
   `abs(entry - stop) / tick_size * tick_value * volume` in the declared tick-value currency.
 - When the tick-value currency differs from the account currency, the caller must provide one fresh,
@@ -35,6 +39,11 @@ conservative engineering values, not production risk recommendations:
 - `max_trade_risk_fraction = 0.01`
 - `max_open_positions = 3`
 - static EURUSD/GBPUSD limits of 50 ticks (`0.00050`) and USDJPY 50 ticks (`0.050`)
+
+The example strategy's 100-tick stop is separate from those spread limits. With the reviewed static
+tick sizes it retains the prior EURUSD and GBPUSD distance of `0.00100`, while USDJPY becomes
+`0.100` instead of the unsafe one-tick `0.0010` absolute distance. These are deterministic safety
+semantics, not optimized or profitable parameters.
 
 The tick values are reviewed paper fixtures, not broker-perfect P/L metadata. Risk sizing still
 excludes commissions, slippage, swap, dynamic tick values, portfolio correlation, and broker-specific

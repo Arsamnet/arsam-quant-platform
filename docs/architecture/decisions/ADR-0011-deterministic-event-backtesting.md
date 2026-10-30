@@ -14,7 +14,9 @@ strategy would also make future-data leakage difficult to prevent or audit.
 Implement a chronological event stream over immutable validated bars. The backtest composition
 reuses `StrategyEvaluator`, the null AI/calendar paths, `RiskEngine`, `ExecutionIntent`, and
 `SymbolSpecification`. A simulated broker and in-memory portfolio are outer-layer backtesting
-components. Each strategy call receives only the current close snapshot and the prior visible close.
+components. Each strategy call receives only the current close snapshot, the prior visible close,
+and the already-resolved matching specification; static reviewed contract facts are not future
+market data.
 Run, dataset, configuration, signal, risk, execution, position, and trade identities are derived
 deterministically.
 

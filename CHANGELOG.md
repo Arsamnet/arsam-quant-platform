@@ -32,6 +32,10 @@ uses Semantic Versioning during pre-production.
   the full replay/restart/kill-switch suite.
 - Confirm the USDJPY missing-conversion negative gate returns `conversion_rate_unavailable` without
   execution. USDJPY inverse-conversion broker execution remains pending.
+- Express the illustrative strategy stop as 100 reviewed symbol ticks through the resolved
+  `SymbolSpecification`, preserving EURUSD/GBPUSD `0.00100` stops while using `0.100` for USDJPY.
+- Validate MQL5 broker-side SL/TP direction and stops/freeze distance against Bid for BUY and Ask
+  for SELL on both initial and final ticks while retaining Ask/BUY and Bid/SELL market request price.
 - Permit `demo` startup only with explicit enablement, exact reviewed identity/limits, a 32+
   character environment-owned secret, and loopback binding; continue rejecting `live` startup.
 - Require take profit in demo risk policy and use 0.01 lot / one position application limits.
@@ -40,6 +44,7 @@ uses Semantic Versioning during pre-production.
 
 ### Fixed
 
+- Block the unsafe USDJPY one-tick stop found during disabled-EA preflight; no order was placed.
 - Accept successful FIBO MQL5 `OrderCheck` semantics (`bool=true`, `GetLastError()=0`,
   `check.retcode=0`) while preserving trade-server retcode handling for `OrderSend`.
 - Tolerate at most `1e-12` broker-price serialization residue in durable result matching while

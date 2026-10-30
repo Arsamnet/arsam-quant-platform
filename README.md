@@ -6,7 +6,8 @@ DEMO environment. It is disabled by default, limited to 0.01 lot and one positio
 production-ready. Live trading remains impossible.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
-statistical edge.
+statistical edge. Its stop is expressed as 100 reviewed symbol ticks, not one cross-symbol absolute
+price distance.
 
 ## Safety status
 

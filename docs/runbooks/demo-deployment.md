@@ -133,11 +133,24 @@ After EURUSD passes execution, reconciliation, replay, both kill switches, and r
 8. Complete deterministic and risk negative tests while the EA remains disabled.
 9. Only after explicit approval, arm the EA for one 0.01 USDJPY DEMO execution.
 
+The exact reviewed EA source must receive a fresh Windows MetaEditor compile with `0 errors,
+0 warnings` after any trigger-side validation change. Reinstall that exact compiled artifact before
+resuming this sequence; no earlier MetaEditor artifact covers the changed source.
+
 On any `unknown`, mismatched ID/fact, uncertain broker history, unexpected position, or failed
 result report: disable the EA, leave Python blocked, preserve sanitized evidence, and reconcile
 manually. Never retry `OrderSend` automatically.
 
-## 8. Sanitized validation completed before inverse-quote implementation
+## 8. Sanitized USDJPY preflight block
+
+With the EA still disabled, a fresh USDJPY read-only observation showed a 9-tick spread. The old
+cross-symbol absolute stop distance was only 1 USDJPY tick, which placed the illustrative SELL stop
+inside the current Ask. Execution was deliberately blocked before arming the EA, and no order was
+placed. Remediation required both a tick-normalized 100-tick example-strategy stop and MQL5 SL/TP
+validation on the position trigger side (Bid for BUY, Ask for SELL). Do not retain raw broker
+snapshots or account identifiers in the repository.
+
+## 9. Sanitized validation completed before inverse-quote implementation
 
 The reviewed environment was `FIBO Group, Ltd` / `FIBOGroup-MT5 Server`, USD DEMO
 (`trade_mode_code=0`), retail hedging (`margin_mode_code=2`), leverage 100, hard volume cap 0.01,

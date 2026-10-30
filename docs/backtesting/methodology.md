@@ -12,7 +12,8 @@ and engine version, it produces the same logical result and identifiers.
 The engine consumes an immutable `HistoricalEventStream` in its supplied chronological order. It
 does not give strategies a dataframe, dataset slice, iterator, cache, or precomputed future-aware
 indicator. At a bar close the existing strategy interface receives only a `MarketSnapshot` containing
-that close and the previous already-visible midpoint close. Point-in-time currency replay similarly
+that close and the previous already-visible midpoint close, plus the reviewed matching
+`SymbolSpecification` already resolved by the engine. Point-in-time currency replay similarly
 returns only the latest observation at or before logical time.
 
 The first bar has no prior bar, so its `previous_close` is its own midpoint close. This creates an
@@ -29,7 +30,8 @@ For every bar, in dataset order:
    SL/TP touch resolves to stop loss.
 5. Mark remaining positions to executable close and update portfolio equity.
 6. Build current market and account snapshots.
-7. Evaluate the versioned strategy with only visible state.
+7. Evaluate the versioned strategy with only visible state and the matching reviewed symbol
+   specification. The example strategy uses its `tick_size` for a 100-tick stop.
 8. Use the explicit null AI advisor and null economic calendar.
 9. Run the existing fail-closed `RiskEngine` with the matching `SymbolSpecification` and visible
    directed conversion rate.

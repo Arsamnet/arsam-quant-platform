@@ -202,6 +202,7 @@ class DecisionService:
         signal_id = _derived_id(command.request_id, "signal")
         strategy_decision = self._strategy.evaluate(
             command.market,
+            symbol_specification,
             signal_id=signal_id,
             evaluated_at=now,
         )

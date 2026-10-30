@@ -12,7 +12,9 @@ obscure a deterministic rejection.
 ## Decision
 
 After replay, node, and request-time checks, the application requires a symbol specification for
-the current node before calling strategy, AI, calendar, risk, or execution. It returns
+the current node before calling strategy, AI, calendar, risk, or execution. It passes the resolved
+specification into the strategy boundary, which independently rejects a market/specification symbol
+mismatch, so symbol-normalized parameters never perform their own lookup. The application returns
 `unknown_symbol` without signal, risk, or execution identifiers when none exists. The Risk Engine
 retains an independent allowlist and specification check for every direct evaluation.
 

@@ -290,6 +290,26 @@ def test_unknown_symbol_is_rejected_before_strategy_and_all_downstream_calls() -
     assert repository.get(REQUEST_ID).ai_status == "not_requested"
 
 
+def test_mismatched_resolved_specification_fails_closed_before_downstream_calls() -> None:
+    class _MismatchedSpecificationProvider:
+        def get(self, symbol: str):
+            assert symbol == "EURUSD"
+            return make_specification(symbol="GBPUSD", base_currency="GBP")
+
+    service, executor, repository = _service(
+        advisor=_ExplodingAdvisor(),
+        calendar=_NeverCalledCalendar(),
+        risk_engine=_NeverCalledRiskEngine(),
+        symbol_specifications=_MismatchedSpecificationProvider(),
+    )
+
+    with pytest.raises(ValueError, match="does not match market symbol"):
+        service.decide(_command())
+
+    assert executor.executed_intents == ()
+    assert repository.get(REQUEST_ID) is None
+
+
 def test_missing_required_currency_conversion_never_creates_execution_intent() -> None:
     usd_jpy = make_specification(
         symbol="USDJPY",

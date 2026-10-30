@@ -39,6 +39,12 @@ symbol, side, market-only order type, volume, requested reference price, require
 spread, signal/risk identities, nonce, request/risk SHA-256 fingerprints, and strategy identity.
 UUIDs and UTC timestamps are strings. Every financial wire value is a decimal string.
 
+The example strategy derives its default SL distance from the reviewed specification as 100 ticks
+and its reward-to-risk-2 TP as 200 ticks. This preserves a `0.00100` stop for EURUSD/GBPUSD and uses
+`0.100` for USDJPY. The EA still calculates market `request.price` from Ask for BUY or Bid for SELL,
+but validates broker stop/target triggers against Bid for BUY and Ask for SELL, both initially and
+from the final pre-send tick.
+
 The IDs, nonce, and request fingerprint are independently unique in the SQLite outbox. The EA also
 persists and rejects these identities. Unknown fields are rejected by Python result schemas.
 

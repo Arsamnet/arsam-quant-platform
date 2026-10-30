@@ -33,3 +33,28 @@ def test_ordercheck_failure_preserves_local_error_retcode_and_comment() -> None:
     assert "IntegerToString(final_check_error)" in source
     assert source.count("IntegerToString((int)check.retcode)") >= 2
     assert source.count("check.comment") >= 2
+
+
+def test_stop_preflight_uses_position_trigger_side_for_initial_and_final_ticks() -> None:
+    source = EXECUTION_GUARD.read_text(encoding="utf-8")
+
+    assert 'double trigger_price=(work.side=="buy" ? tick.bid : tick.ask);' in source
+    assert "work.stop_loss>=trigger_price" in source
+    assert "work.take_profit<=trigger_price" in source
+    assert "work.stop_loss<=trigger_price" in source
+    assert "work.take_profit>=trigger_price" in source
+    assert "MathAbs(trigger_price-work.stop_loss)<minimum_distance" in source
+    assert "MathAbs(work.take_profit-trigger_price)<minimum_distance" in source
+    assert source.count("ValidateStopsForTick(work,") == 2
+    assert "if(!ValidateStopsForTick(work,tick,reason))" in source
+    assert "if(!ValidateStopsForTick(work,final_tick,reason))" in source
+
+
+def test_market_request_price_remains_on_entry_side_without_send_retry() -> None:
+    source = EXECUTION_GUARD.read_text(encoding="utf-8")
+
+    assert 'request.price=(work.side=="buy" ? tick.ask : tick.bid);' in source
+    assert 'request.price=(work.side=="buy" ? final_tick.ask : final_tick.bid);' in source
+    assert source.count("OrderCheck(request,check)") == 2
+    assert source.count("OrderSend(request,result)") == 1
+    assert "OrderSendAsync" not in source
