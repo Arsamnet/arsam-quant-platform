@@ -180,12 +180,8 @@ def make_assessment(
     uncertainty: Decimal | None = None,
 ) -> AiAssessment:
     """Build bounded AI advice tied to the default signal."""
-    default_confidence = (
-        Decimal("0.75") if status is AiAssessmentStatus.AVAILABLE else Decimal(0)
-    )
-    default_uncertainty = (
-        Decimal("0.25") if status is AiAssessmentStatus.AVAILABLE else Decimal(1)
-    )
+    default_confidence = Decimal("0.75") if status is AiAssessmentStatus.AVAILABLE else Decimal(0)
+    default_uncertainty = Decimal("0.25") if status is AiAssessmentStatus.AVAILABLE else Decimal(1)
     return AiAssessment(
         assessment_id=ASSESSMENT_ID,
         signal_id=signal_id,
