@@ -219,10 +219,10 @@ The remediation is defense in depth:
 3. `request.deviation` remains a separate broker-side slippage tolerance after submission.
 
 The completed USDJPY broker execution validates the pre-remediation artifact and the inverse-risk,
-tick-normalized SL/TP, broker execution, and reconciliation paths. The new drift-gated MQL5 source
-still requires a fresh Windows MetaEditor `0 errors, 0 warnings` compile and an explicit negative
-drift test before PR merge/tag. No additional broker order is required merely to prove the negative
-drift gate.
+tick-normalized SL/TP, broker execution, and reconciliation paths. The post-remediation drift-gated
+MQL5 source was then deployed and independently compiled in Windows MetaEditor with
+`0 errors, 0 warnings`; the deployed source matched the reviewed repository source exactly. The
+explicit negative drift test also completed without creating another broker order.
 
 For that explicit negative gate, use
 `scripts/invoke-usdjpy-intent-price-drift-negative-test.ps1` rather than an interactive paste.
@@ -238,3 +238,30 @@ The EA must be armed only for this negative test and disabled immediately afterw
 runtime evidence is `intent_price_drift_exceeded`, `rejected` increasing by exactly one,
 `position_confirmed` remaining unchanged, no unresolved durable state, and no broker position or
 pending order. Any ambiguous submission outcome is a no-retry/manual-reconciliation event.
+
+### Post-remediation Windows evidence
+
+The final drift-gated EA validation used repository commit
+`7496b2c02a639368bc949be3498b3c66d88caac4` for the compiled MQL5 artifact; subsequent commits
+only added/formatted the negative-test harness, tests, and documentation and did not modify the MQL5
+source.
+
+- Windows quality gate before the negative test: 441 tests passed, 96.07% branch coverage, Ruff
+  check/format PASS, strict mypy PASS, and pre-commit PASS.
+- Repository and deployed MQL5 source SHA-256:
+  `80AF2098F3EA8AA95CD1951287D32864EF9CD7326933FFED0DB12C3E5FDA9070`.
+- MetaEditor result: `0 errors, 0 warnings`; generated EX5 size: 50,888 bytes.
+- EX5 SHA-256:
+  `ADBA2883263112563B6284B1F12289EEB018B5492456A04FBF8A54D1AE8039DE`.
+- Negative-test request:
+  `2e72fdce-a87e-4ebd-8923-1618dc91ea7d`.
+- Negative-test execution:
+  `2f1d9325-af41-5a51-9308-d98c7768d9b3`.
+- Synthetic SELL intent drift: 78,744 USDJPY points; the independent stop-direction fallback margin
+  was 78,644 points.
+- Runtime EA rejection:
+  `intent_price_drift_exceeded`.
+- Durable counts changed only from `position_confirmed=3, rejected=1` to
+  `position_confirmed=3, rejected=2`; no unresolved state remained.
+- The EA was returned to `EnableDemoExecution=false` immediately after the negative test.
+
