@@ -21,7 +21,7 @@ class PreviousCloseMomentumStrategy:
     stop_distance_ticks: Decimal = Decimal(100)
     reward_to_risk: Decimal = Decimal(2)
     name: str = "previous_close_momentum_example"
-    version: str = "1.0.0"
+    version: str = "1.1.0"
 
     def __post_init__(self) -> None:
         require_positive_decimal(self.volume, "volume")

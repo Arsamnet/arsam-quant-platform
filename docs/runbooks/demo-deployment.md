@@ -180,7 +180,7 @@ and one open position maximum. LIVE remained forbidden.
 
 These figures validate execution and fail-closed paths only; they are not strategy-performance or
 profitability evidence. No USDJPY broker execution has passed. Local inverse-quote implementation,
-deterministic/risk-negative validation, and quality gates completed with 427 tests passing, 96.07%
+deterministic/risk-negative validation, and quality gates completed with 436 tests passing, 96.07%
 branch coverage, Ruff format/check, strict mypy, and pre-commit. Remaining work is Windows
 deployment of this change and one explicitly approved 0.01 USDJPY DEMO execution followed by
 reconciliation, replay, kill-switch, and restart checks as applicable. Only then may final v0.5.0

@@ -125,6 +125,8 @@ def test_strategy_remains_deterministic_for_identical_inputs() -> None:
     market = make_market()
     specification = make_specification()
 
+    assert strategy.version == "1.1.0"
+
     first = strategy.evaluate(
         market,
         specification,
