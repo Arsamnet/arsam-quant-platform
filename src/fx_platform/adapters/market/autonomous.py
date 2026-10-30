@@ -26,6 +26,8 @@ from fx_platform.application.autonomy import (
 from fx_platform.domain.market import AccountSnapshot, MarketSnapshot
 
 _SNAPSHOT_NAMESPACE = UUID("4bb05014-14e1-4cf6-8e8a-92665dbd8eaf")
+_RETAIL_HEDGING_MARGIN_MODE = 2
+_FULL_TRADE_MODE = 4
 
 
 def _decimal_string(value: object) -> Decimal:
@@ -177,7 +179,7 @@ class FileAutonomousSnapshotSource:
             not payload.terminal.connected
             or account.currency != self._expected_account_currency
             or account.trade_mode_code != 0
-            or account.margin_mode_code != 2
+            or account.margin_mode_code != _RETAIL_HEDGING_MARGIN_MODE
             or account.leverage != self._expected_leverage
             or not account.trade_allowed
             or not account.automated_trading_allowed
@@ -187,7 +189,7 @@ class FileAutonomousSnapshotSource:
         if symbols != self._allowed_symbols:
             raise AutonomousSnapshotError("autonomous symbol set differs from reviewed allowlist")
         for symbol in payload.symbols:
-            if symbol.trade_mode_code != 4:
+            if symbol.trade_mode_code != _FULL_TRADE_MODE:
                 raise AutonomousSnapshotError(f"{symbol.name} is not trade-enabled")
             if symbol.tick_age_seconds > self._max_tick_age_seconds:
                 raise AutonomousSnapshotError(f"{symbol.name} quote is stale")
