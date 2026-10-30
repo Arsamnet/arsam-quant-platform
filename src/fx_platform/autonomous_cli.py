@@ -11,7 +11,11 @@ from fx_platform.adapters.ai import OpenAiAdvisor, OpenAiResponsesClient, Struct
 from fx_platform.adapters.clock import SystemClock
 from fx_platform.adapters.market import bootstrap_symbol_specifications
 from fx_platform.adapters.market.autonomous import FileAutonomousSnapshotSource
-from fx_platform.application.autonomy import AutonomousDemoSupervisor, AutonomousSnapshotError
+from fx_platform.application.autonomy import (
+    AutonomousDemoSupervisor,
+    AutonomousSnapshot,
+    AutonomousSnapshotError,
+)
 from fx_platform.application.factory import build_runtime
 from fx_platform.config import AiMode, Settings
 from fx_platform.domain.advisory import AiAssessment, AiAssessmentStatus
@@ -34,6 +38,21 @@ def build_snapshot_source(settings: Settings) -> FileAutonomousSnapshotSource:
         account_id=settings.autonomous_account_id,
         max_tick_age_seconds=settings.autonomous_max_snapshot_age_seconds,
     )
+
+
+def read_fresh_snapshot(settings: Settings) -> AutonomousSnapshot:
+    """Read one local snapshot and enforce wall-clock freshness before any AI call."""
+    snapshot = read_fresh_snapshot(settings)
+    now = SystemClock().now()
+    if snapshot.acquired_at - now > timedelta(seconds=2):
+        raise AutonomousSnapshotError("autonomous snapshot timestamp is in the future")
+    if now - snapshot.acquired_at > timedelta(
+        seconds=settings.autonomous_max_snapshot_age_seconds
+    ):
+        raise AutonomousSnapshotError("autonomous snapshot is stale")
+    if snapshot.account.observed_at != snapshot.acquired_at:
+        raise AutonomousSnapshotError("account observation does not match snapshot acquisition")
+    return snapshot
 
 
 def build_autonomous_supervisor(settings: Settings) -> AutonomousDemoSupervisor:
@@ -144,7 +163,7 @@ def main() -> None:
     configure_logging(settings.log_level)
 
     if args.validate_snapshot:
-        snapshot = build_snapshot_source(settings).read()
+        snapshot = read_fresh_snapshot(settings)
         logger.info(
             "autonomous_snapshot_valid",
             extra={
