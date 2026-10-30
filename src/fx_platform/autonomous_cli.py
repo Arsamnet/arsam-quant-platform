@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import sys
 import time
 from datetime import timedelta
 from uuid import UUID, uuid5
@@ -113,7 +114,8 @@ def validate_ai_only(
     )
     if decision.candidate is None:
         raise RuntimeError(
-            "AI-only validation requires a deterministic strategy candidate for the current snapshot"
+            "AI-only validation requires a deterministic strategy candidate "
+            "for the current snapshot"
         )
 
     client = ai_client or OpenAiResponsesClient(
@@ -190,7 +192,7 @@ def main() -> None:
             "outbox_called": False,
             "execution_called": False,
         }
-        print(json.dumps(output, separators=(",", ":"), sort_keys=True))
+        sys.stdout.write(json.dumps(output, separators=(",", ":"), sort_keys=True) + "\n")
         if assessment.status is not AiAssessmentStatus.AVAILABLE:
             raise SystemExit(3)
         return
