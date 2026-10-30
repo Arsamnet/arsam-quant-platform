@@ -45,7 +45,7 @@ def test_negative_drift_harness_has_two_pre_order_safety_rejections() -> None:
     assert '$ErrorActionPreference = "Stop"' in source
     assert "Set-StrictMode -Version Latest" in source
     assert source.count('Uri = "http://127.0.0.1:8000/v1/decision"') == 1
-    assert '$SyntheticBid = [decimal]::Floor' in source
+    assert "$SyntheticBid = [decimal]::Floor" in source
     assert "$DriftPoints -le $ReviewedDeviationPoints" in source
     assert "$ExpectedStopLoss -ge $ActualAsk" in source
     assert '$RequiredSecondaryMarginPoints = [decimal]"10000"' in source
