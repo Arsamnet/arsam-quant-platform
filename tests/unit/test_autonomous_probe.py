@@ -44,3 +44,5 @@ def test_autonomous_probe_exports_required_fail_closed_inputs() -> None:
     assert "SymbolInfoTick(" in source
     assert "EventSetTimer(" in source
     assert "PERIOD_M15" in source
+    assert "ACCOUNT_CURRENCY_DIGITS" in source
+    assert "SYMBOL_DIGITS" in source
