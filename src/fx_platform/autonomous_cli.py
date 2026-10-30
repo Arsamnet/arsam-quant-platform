@@ -42,7 +42,7 @@ def build_snapshot_source(settings: Settings) -> FileAutonomousSnapshotSource:
 
 def read_fresh_snapshot(settings: Settings) -> AutonomousSnapshot:
     """Read one local snapshot and enforce wall-clock freshness before any AI call."""
-    snapshot = read_fresh_snapshot(settings)
+    snapshot = build_snapshot_source(settings).read()
     now = SystemClock().now()
     if snapshot.acquired_at - now > timedelta(seconds=2):
         raise AutonomousSnapshotError("autonomous snapshot timestamp is in the future")
@@ -89,7 +89,7 @@ def validate_ai_only(
     if symbol not in settings.demo_allowed_symbols:
         raise RuntimeError(f"AI validation symbol is not in the reviewed allowlist: {symbol}")
 
-    snapshot = build_snapshot_source(settings).read()
+    snapshot = read_fresh_snapshot(settings)
     observation = next(
         (item for item in snapshot.markets if item.market.symbol == symbol),
         None,
