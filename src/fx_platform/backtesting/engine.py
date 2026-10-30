@@ -299,7 +299,9 @@ class BacktestEngine:
         dataset: HistoricalDataset,
     ) -> dict[str, SymbolSpecification]:
         if len(dataset.metadata.symbols) != 1:
-            raise BacktestConfigurationError("single-symbol backtest scope requires exactly one symbol")
+            raise BacktestConfigurationError(
+                "single-symbol backtest scope requires exactly one symbol"
+            )
         specifications: dict[str, SymbolSpecification] = {}
         for symbol in dataset.metadata.symbols:
             if symbol not in self._risk_limits.allowed_symbols:
