@@ -16,6 +16,7 @@ from fx_platform.domain.market import (
 )
 
 _AUTONOMY_NAMESPACE = UUID("6a12e493-4da9-4c6a-bcf3-4453fdc3f280")
+_CURRENCY_CODE_LENGTH = 3
 _BLOCKING_EXECUTION_STATUSES = frozenset(
     {
         "pending",
@@ -45,9 +46,9 @@ class AutonomousMarketObservation:
     def __post_init__(self) -> None:
         if self.decision_bar_time.tzinfo is None:
             raise ValueError("decision_bar_time must be timezone-aware")
-        if self.base_currency != self.base_currency.upper() or len(self.base_currency) != 3:
+        if self.base_currency != self.base_currency.upper() or len(self.base_currency) != _CURRENCY_CODE_LENGTH:
             raise ValueError("base_currency must be a three-letter uppercase code")
-        if self.quote_currency != self.quote_currency.upper() or len(self.quote_currency) != 3:
+        if self.quote_currency != self.quote_currency.upper() or len(self.quote_currency) != _CURRENCY_CODE_LENGTH:
             raise ValueError("quote_currency must be a three-letter uppercase code")
 
 
