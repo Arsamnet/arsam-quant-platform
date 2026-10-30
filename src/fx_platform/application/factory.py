@@ -83,6 +83,8 @@ def build_runtime(
             max_daily_loss_absolute_cap=settings.max_daily_loss_absolute_cap,
             max_trade_risk_fraction=settings.max_trade_risk_fraction,
             ai_required=settings.ai_required,
+            ai_min_confidence=settings.ai_min_confidence,
+            ai_max_uncertainty=settings.ai_max_uncertainty,
             economic_calendar_required=settings.economic_calendar_required,
             require_take_profit=(
                 settings.demo_require_take_profit
