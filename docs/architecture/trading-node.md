@@ -23,14 +23,21 @@ therefore suppressed by the outbox even when the process audit cache is empty.
 
 `POST /v1/decision` keeps schema `1.0`. It requires request UUID, aware timestamp, 16+ character
 nonce, matching node ID, strict market/account snapshots, and optional explicit directed conversion
-rates. Financial values are JSON strings. Extra fields, naive/stale/future time, wrong nodes, reused
-identity, unknown symbols, missing required state, and invalid decimals reject.
+rates. The optional `inverse_conversion_quotes` collection carries a complete broker Bid/Ask
+snapshot and an explicit requested conversion; Python never looks up a symbol. Financial values are
+JSON strings. Extra fields, naive/stale/future time, wrong nodes, reused identity, unknown symbols,
+missing required state, and invalid decimals reject.
 
 When `FX_HMAC_SECRET` is set, send `X-FX-Signature: sha256=<hex>` where the digest is HMAC-SHA256 of
 the exact bytes. Missing/malformed signatures reject and Python uses constant-time comparison.
 
 USDJPY still requires a fresh, explicit JPY-to-USD rate for the reviewed static tick-value
-semantics. The system never infers an inverse or cross rate.
+semantics. A caller may supply that directed rate or request the reviewed exact inverse derivation
+from a complete USDJPY quote. Because this boundary calculates stop-loss exposure, the reviewed
+loss-side derivation uses `1 / bid`; the separate positive/profit conversion evidence corresponds to
+`1 / ask`. This is not a universal rule that JPY-to-USD always uses Bid. Automatic inversion,
+arbitrary reverse-rate inference, and cross rates remain forbidden. Accepted quote provenance is
+included in the request fingerprint.
 
 ## Demo execution API
 

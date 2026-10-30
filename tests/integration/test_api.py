@@ -46,6 +46,49 @@ def _payload() -> dict[str, object]:
     }
 
 
+def _usdjpy_payload() -> dict[str, object]:
+    payload = _payload()
+    market = payload["market"]
+    assert isinstance(market, dict)
+    market.update(
+        {
+            "symbol": "USDJPY",
+            "bid": "157.776",
+            "ask": "157.786",
+            "previous_close": "156.868",
+        }
+    )
+    return payload
+
+
+def _inverse_usdjpy_quote(*, observed_at: str | None = None) -> dict[str, object]:
+    return {
+        "source_currency": "JPY",
+        "target_currency": "USD",
+        "source_symbol": "USDJPY",
+        "pair_base_currency": "USD",
+        "pair_quote_currency": "JPY",
+        "bid": "157.776",
+        "ask": "157.786",
+        "observed_at": observed_at or NOW.isoformat(),
+    }
+
+
+def _usdjpy_service():
+    specification = make_specification(
+        symbol="USDJPY",
+        base_currency="USD",
+        quote_currency="JPY",
+        tick_size=Decimal("0.001"),
+        tick_value=Decimal(100),
+        tick_value_currency="JPY",
+    )
+    return _service(
+        risk_engine=RiskEngine(RiskLimits(allowed_symbols=frozenset({"USDJPY"}))),
+        symbol_specifications=StaticSymbolSpecificationProvider((specification,)),
+    )
+
+
 @asynccontextmanager
 async def _client():
     service, executor, repository = _service()
@@ -164,29 +207,8 @@ async def test_decimal_strings_preserve_exact_values_to_execution() -> None:
 
 
 async def test_usdjpy_request_uses_explicit_jpy_to_usd_conversion() -> None:
-    specification = make_specification(
-        symbol="USDJPY",
-        base_currency="USD",
-        quote_currency="JPY",
-        tick_size=Decimal("0.001"),
-        tick_value=Decimal(100),
-        tick_value_currency="JPY",
-    )
-    service, executor, _ = _service(
-        risk_engine=RiskEngine(RiskLimits(allowed_symbols=frozenset({"USDJPY"}))),
-        symbol_specifications=StaticSymbolSpecificationProvider((specification,)),
-    )
-    payload = _payload()
-    market = payload["market"]
-    assert isinstance(market, dict)
-    market.update(
-        {
-            "symbol": "USDJPY",
-            "bid": "150.000",
-            "ask": "150.010",
-            "previous_close": "149.900",
-        }
-    )
+    service, executor, _ = _usdjpy_service()
+    payload = _usdjpy_payload()
     payload["conversion_rates"] = [
         {
             "source_currency": "JPY",
@@ -205,3 +227,128 @@ async def test_usdjpy_request_uses_explicit_jpy_to_usd_conversion() -> None:
 
     assert response.json()["status"] == "paper_executed"
     assert len(executor.executed_intents) == 1
+
+
+async def test_usdjpy_without_conversion_remains_fail_closed() -> None:
+    service, executor, _ = _usdjpy_service()
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=_usdjpy_payload())
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "risk_rejected"
+    assert response.json()["reasons"] == ["conversion_rate_unavailable"]
+    assert response.json()["execution_id"] is None
+    assert executor.executed_intents == ()
+
+
+async def test_usdjpy_request_derives_jpy_to_usd_from_fresh_exact_inverse_quote() -> None:
+    service, executor, _ = _usdjpy_service()
+    payload = _usdjpy_payload()
+    payload["inverse_conversion_quotes"] = [_inverse_usdjpy_quote()]
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "paper_executed"
+    assert len(executor.executed_intents) == 1
+
+
+@pytest.mark.parametrize(
+    ("observed_at", "reason"),
+    [
+        ((NOW - timedelta(seconds=31)).isoformat(), "conversion_rate_stale"),
+        ((NOW + timedelta(seconds=3)).isoformat(), "conversion_rate_in_future"),
+    ],
+)
+async def test_stale_or_future_inverse_quote_rejects_without_execution(
+    observed_at: str,
+    reason: str,
+) -> None:
+    service, executor, _ = _usdjpy_service()
+    payload = _usdjpy_payload()
+    payload["inverse_conversion_quotes"] = [_inverse_usdjpy_quote(observed_at=observed_at)]
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "risk_rejected"
+    assert reason in response.json()["reasons"]
+    assert response.json()["execution_id"] is None
+    assert executor.executed_intents == ()
+
+
+async def test_direct_and_derived_applicable_rates_reject_as_ambiguous() -> None:
+    service, executor, _ = _usdjpy_service()
+    payload = _usdjpy_payload()
+    payload["conversion_rates"] = [
+        {
+            "source_currency": "JPY",
+            "target_currency": "USD",
+            "rate": "0.0067",
+            "observed_at": NOW.isoformat(),
+        }
+    ]
+    payload["inverse_conversion_quotes"] = [_inverse_usdjpy_quote()]
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "risk_rejected"
+    assert "conversion_rate_ambiguous" in response.json()["reasons"]
+    assert response.json()["execution_id"] is None
+    assert executor.executed_intents == ()
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"source_symbol": "EURJPY", "pair_base_currency": "EUR"},
+        {"source_currency": "EUR"},
+        {"source_currency": "USD", "target_currency": "USD"},
+        {"bid": "0"},
+        {"bid": "-1"},
+        {"ask": "0"},
+        {"ask": "-1"},
+        {"bid": "157.787"},
+        {"source_symbol": "EURJPY"},
+        {"source_currency": "jpy"},
+    ],
+)
+async def test_invalid_or_non_inverse_quote_is_schema_rejected(
+    changes: dict[str, object],
+) -> None:
+    service, executor, _ = _usdjpy_service()
+    payload = _usdjpy_payload()
+    quote = _inverse_usdjpy_quote()
+    quote.update(changes)
+    payload["inverse_conversion_quotes"] = [quote]
+    app = create_app(
+        settings=Settings(_env_file=None, node_id="paper-node"),
+        service=service,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/v1/decision", json=payload)
+
+    assert response.status_code == 422
+    assert executor.executed_intents == ()

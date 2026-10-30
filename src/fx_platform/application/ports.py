@@ -36,11 +36,12 @@ class StrategyEvaluator(Protocol):
     def evaluate(
         self,
         market: MarketSnapshot,
+        symbol_specification: SymbolSpecification,
         *,
         signal_id: UUID,
         evaluated_at: datetime,
     ) -> StrategyDecision:
-        """Return a candidate or an explicit no-signal decision."""
+        """Return a candidate or no-signal decision using the reviewed matching specification."""
         ...
 
 

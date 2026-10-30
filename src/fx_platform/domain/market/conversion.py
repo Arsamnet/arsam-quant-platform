@@ -2,12 +2,22 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 from enum import StrEnum
 
 from fx_platform.domain.common import require_finite_decimal, require_positive_decimal, require_utc
 
 _CURRENCY_CODE_LENGTH = 3
+
+
+def _require_currency_code(value: str, field_name: str) -> None:
+    if (
+        len(value) != _CURRENCY_CODE_LENGTH
+        or not value.isascii()
+        or not value.isalpha()
+        or value != value.upper()
+    ):
+        raise ValueError(f"{field_name} must be an uppercase ISO-style currency code")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -26,10 +36,121 @@ class CurrencyConversionRate:
             ("source_currency", self.source_currency),
             ("target_currency", self.target_currency),
         ):
-            if len(value) != _CURRENCY_CODE_LENGTH or value != value.upper():
-                raise ValueError(f"{field_name} must be an uppercase ISO-style currency code")
+            _require_currency_code(value, field_name)
         if self.source_currency == self.target_currency:
             raise ValueError("conversion currencies must be different")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BrokerFxQuote:
+    """Caller-supplied exact broker pair Bid/Ask observation."""
+
+    source_symbol: str
+    base_currency: str
+    quote_currency: str
+    bid: Decimal
+    ask: Decimal
+    observed_at: datetime
+
+    def __post_init__(self) -> None:
+        require_utc(self.observed_at, "observed_at")
+        require_positive_decimal(self.bid, "bid")
+        require_positive_decimal(self.ask, "ask")
+        _require_currency_code(self.base_currency, "base_currency")
+        _require_currency_code(self.quote_currency, "quote_currency")
+        if self.base_currency == self.quote_currency:
+            raise ValueError("broker pair currencies must be different")
+        if self.source_symbol != f"{self.base_currency}{self.quote_currency}":
+            raise ValueError("source_symbol must exactly match broker pair currencies")
+        if self.ask < self.bid:
+            raise ValueError("ask must be greater than or equal to bid")
+
+
+class CurrencyConversionDerivationMethod(StrEnum):
+    """Reviewed ways a directed currency conversion may be derived."""
+
+    INVERSE_EXACT_PAIR = "inverse_exact_pair"
+
+
+class BrokerPriceSide(StrEnum):
+    """Broker quote side used by a reviewed conversion derivation."""
+
+    BID = "bid"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InverseConversionRateDerivation:
+    """Auditable result of deriving one directed rate from its exact reverse pair."""
+
+    requested_source_currency: str
+    requested_target_currency: str
+    broker_quote: BrokerFxQuote
+    derivation_method: CurrencyConversionDerivationMethod
+    price_side: BrokerPriceSide
+    conversion_rate: CurrencyConversionRate
+
+    def __post_init__(self) -> None:
+        _require_currency_code(self.requested_source_currency, "requested_source_currency")
+        _require_currency_code(self.requested_target_currency, "requested_target_currency")
+        if self.requested_source_currency == self.requested_target_currency:
+            raise ValueError("conversion currencies must be different")
+        if (
+            self.broker_quote.base_currency != self.requested_target_currency
+            or self.broker_quote.quote_currency != self.requested_source_currency
+        ):
+            raise ValueError("broker quote must be the exact inverse of the requested conversion")
+        if self.derivation_method is not CurrencyConversionDerivationMethod.INVERSE_EXACT_PAIR:
+            raise ValueError("unsupported currency conversion derivation method")
+        if self.price_side is not BrokerPriceSide.BID:
+            raise ValueError("inverse exact-pair risk conversion must use the broker Bid")
+        try:
+            expected_rate = Decimal(1) / self.broker_quote.bid
+        except DecimalException as error:
+            raise ValueError("inverse conversion rate could not be derived") from error
+        if (
+            self.conversion_rate.source_currency != self.requested_source_currency
+            or self.conversion_rate.target_currency != self.requested_target_currency
+            or self.conversion_rate.observed_at != self.broker_quote.observed_at
+            or self.conversion_rate.rate != expected_rate
+        ):
+            raise ValueError("derived conversion rate does not match inverse quote provenance")
+
+
+def derive_inverse_conversion_rate(
+    *,
+    source_currency: str,
+    target_currency: str,
+    broker_quote: BrokerFxQuote,
+) -> InverseConversionRateDerivation:
+    """Derive a stop-loss risk rate from the explicit exact reverse pair Bid."""
+    _require_currency_code(source_currency, "source_currency")
+    _require_currency_code(target_currency, "target_currency")
+    if source_currency == target_currency:
+        raise ValueError("conversion currencies must be different")
+    if (
+        broker_quote.base_currency != target_currency
+        or broker_quote.quote_currency != source_currency
+    ):
+        raise ValueError("broker quote must be the exact inverse of the requested conversion")
+    try:
+        rate = Decimal(1) / broker_quote.bid
+    except DecimalException as error:
+        raise ValueError("inverse conversion rate could not be derived") from error
+    require_positive_decimal(rate, "derived conversion rate")
+    conversion_rate = CurrencyConversionRate(
+        source_currency=source_currency,
+        target_currency=target_currency,
+        rate=rate,
+        observed_at=broker_quote.observed_at,
+    )
+    return InverseConversionRateDerivation(
+        requested_source_currency=source_currency,
+        requested_target_currency=target_currency,
+        broker_quote=broker_quote,
+        derivation_method=CurrencyConversionDerivationMethod.INVERSE_EXACT_PAIR,
+        price_side=BrokerPriceSide.BID,
+        conversion_rate=conversion_rate,
+    )
 
 
 class CurrencyConversionFailure(StrEnum):

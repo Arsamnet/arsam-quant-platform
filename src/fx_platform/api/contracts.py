@@ -24,8 +24,11 @@ from fx_platform.domain.execution import (
 )
 from fx_platform.domain.market import (
     AccountSnapshot,
+    BrokerFxQuote,
     CurrencyConversionRate,
+    InverseConversionRateDerivation,
     MarketSnapshot,
+    derive_inverse_conversion_rate,
 )
 
 
@@ -157,6 +160,46 @@ class CurrencyConversionRateRequest(_ContractModel):
         )
 
 
+class InverseConversionQuoteRequest(_ContractModel):
+    """Explicit request to derive a directed rate from one exact inverse broker pair."""
+
+    source_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    target_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    source_symbol: str = Field(pattern=r"^[A-Z]{6}$")
+    pair_base_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    pair_quote_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    bid: ExactDecimal
+    ask: ExactDecimal
+    observed_at: AwareDatetime
+
+    @field_validator("observed_at")
+    @classmethod
+    def normalize_timestamp(cls, value: datetime) -> datetime:
+        """Normalize the caller-supplied broker observation to UTC."""
+        return value.astimezone(UTC)
+
+    @model_validator(mode="after")
+    def validate_derivation(self) -> Self:
+        """Reject anything other than one valid exact-pair inverse derivation."""
+        self.to_domain()
+        return self
+
+    def to_domain(self) -> InverseConversionRateDerivation:
+        """Derive and retain an auditable directed conversion rate."""
+        return derive_inverse_conversion_rate(
+            source_currency=self.source_currency,
+            target_currency=self.target_currency,
+            broker_quote=BrokerFxQuote(
+                source_symbol=self.source_symbol,
+                base_currency=self.pair_base_currency,
+                quote_currency=self.pair_quote_currency,
+                bid=self.bid,
+                ask=self.ask,
+                observed_at=self.observed_at,
+            ),
+        )
+
+
 class DecisionRequest(_ContractModel):
     """Versioned MQL5-to-Python decision request envelope."""
 
@@ -168,6 +211,7 @@ class DecisionRequest(_ContractModel):
     market: MarketSnapshotRequest
     account: AccountSnapshotRequest
     conversion_rates: tuple[CurrencyConversionRateRequest, ...] = ()
+    inverse_conversion_quotes: tuple[InverseConversionQuoteRequest, ...] = ()
 
     @field_validator("timestamp")
     @classmethod
@@ -186,6 +230,9 @@ class DecisionRequest(_ContractModel):
             market=self.market.to_domain(),
             account=self.account.to_domain(),
             conversion_rates=tuple(rate.to_domain() for rate in self.conversion_rates),
+            inverse_conversion_derivations=tuple(
+                quote.to_domain() for quote in self.inverse_conversion_quotes
+            ),
         )
 
 

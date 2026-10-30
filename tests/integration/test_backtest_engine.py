@@ -37,9 +37,9 @@ def test_golden_backtest_is_byte_reproducible_with_exact_accounting() -> None:
     assert first.metadata.dataset.checksum == (
         "42ef6f69d7ab7dd1febb1b2d392410365eb8d90dfb756d9c86ef41a9b0b7d1ac"
     )
-    assert str(first.metadata.run_id) == "b0c556b4-7308-5f0c-97d5-1d6aa13e3b71"
+    assert str(first.metadata.run_id) == "1be4454c-9692-5156-a884-901ba35b5070"
     assert first.metadata.strategy.parameter_hash == (
-        "f5040644b5f7241a7ba484463d5a63c1b00d6b948ad8464529393334b58424fa"
+        "4437c4443d23b959f97d9230fdf833859ecf0ecd95cc81de344d070e6da642c0"
     )
     assert first.metadata.risk_configuration_hash == (
         "42e116a2f45f4bf26860f62a35a2ee804769191131d6826b41c2cff371133861"
@@ -55,7 +55,7 @@ def test_golden_backtest_is_byte_reproducible_with_exact_accounting() -> None:
     assert first.report.profit_factor == Decimal(0)
     assert first.report.payoff_ratio is None
     trade = first.trades[0]
-    assert str(trade.trade_id) == "05e94527-3987-5352-b9b6-65693a8c78d8"
+    assert str(trade.trade_id) == "4f4248f2-32b2-5fa3-b4ef-9b8f450101cd"
     assert trade.exit_reason is ExitReason.STOP_LOSS
     assert trade.executed_entry_price == Decimal("1.10121")
     assert trade.exit_price == Decimal("1.10019")
@@ -108,8 +108,16 @@ class _FutureLeakGuardStrategy:
     version: str = "1.0.0"
     observed: list[tuple[datetime, Decimal]] = field(default_factory=list)
 
-    def evaluate(self, market: MarketSnapshot, *, signal_id, evaluated_at) -> StrategyDecision:
+    def evaluate(
+        self,
+        market: MarketSnapshot,
+        symbol_specification,
+        *,
+        signal_id,
+        evaluated_at,
+    ) -> StrategyDecision:
         del signal_id
+        assert symbol_specification.symbol == market.symbol
         self.observed.append((evaluated_at, market.previous_close))
         return StrategyDecision(
             strategy_name=self.name,
@@ -219,7 +227,7 @@ def test_cross_currency_data_without_directed_rate_fails_closed_in_risk() -> Non
             strategy_version=strategy.version,
             parameters={
                 "volume": strategy.volume,
-                "stop_distance": strategy.stop_distance,
+                "stop_distance_ticks": strategy.stop_distance_ticks,
                 "reward_to_risk": strategy.reward_to_risk,
             },
         ),

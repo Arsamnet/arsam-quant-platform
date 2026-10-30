@@ -6,7 +6,8 @@ DEMO environment. It is disabled by default, limited to 0.01 lot and one positio
 production-ready. Live trading remains impossible.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
-statistical edge.
+statistical edge. Its stop is expressed as 100 reviewed symbol ticks, not one cross-symbol absolute
+price distance.
 
 ## Safety status
 
@@ -76,7 +77,11 @@ node ID, and request/market/account timestamps no more than 30 seconds old. All 
 P/L, and volumes on the wire are strings such as `"1.1002"`, never JSON numbers. The detailed
 contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md). Accounts
 default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
-an explicit fresh directed conversion rate.
+an explicit fresh directed conversion rate. Schema 1.0 also accepts a complete exact reverse-pair
+Bid/Ask snapshot in `inverse_conversion_quotes`; for inverse conversion of stop-loss exposure from
+JPY to USD using USDJPY it derives the loss-side rate `1 / bid`, retains provenance in request
+identity, and never infers a cross rate. Positive/profit conversion is a separate concept for which
+the reviewed MT5 evidence corresponds to `1 / ask`.
 
 ## Guarded Windows DEMO validation
 
@@ -89,10 +94,10 @@ explicit demo variables in `.env`, then run:
 ./scripts/check-demo-node.ps1
 ```
 
-Compile `ArsamDemoExecutionGuard.mq5` in MetaEditor and require `0 errors / 0 warnings`; compilation
-has not yet been evidenced for 0.5.0. Add `http://127.0.0.1:8000` to MT5 WebRequest allowlisting,
-attach the EA with `EnableDemoExecution=false`, complete every negative gate, then explicitly arm it
-only for the controlled EURUSD 0.01 test. See the
+Compile `ArsamDemoExecutionGuard.mq5` in MetaEditor and require `0 errors / 0 warnings`. Add
+`http://127.0.0.1:8000` to MT5 WebRequest allowlisting, attach the EA with
+`EnableDemoExecution=false`, complete every negative gate, then explicitly arm it only for an
+approved controlled test. See the
 [demo deployment runbook](docs/runbooks/demo-deployment.md) and
 [execution contract](docs/execution/demo-execution-contract.md).
 
@@ -169,7 +174,15 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The implementation is ready for controlled Windows engineering validation, not release. Actual
-MetaEditor compilation, negative terminal evidence, EURUSD/GBPUSD execution/reconciliation/replay/
-restart evidence, and conditional USDJPY conversion evidence are still required. Windows
-infrastructure hardening was deliberately deferred and must not be inferred from this milestone.
+The implementation is ready for continued controlled Windows engineering validation, not release.
+EURUSD completed the full 0.01 DEMO execution/reconciliation/replay/kill/restart validation. GBPUSD
+then completed the required follow-up execution/protection/reconciliation gate; it did not repeat
+the full replay/restart/kill-switch suite. The closed trades' net results are execution evidence
+only, not strategy-performance evidence. A USDJPY request without conversion correctly failed with
+`conversion_rate_unavailable`. The controlled USDJPY 0.01 DEMO execution/reconciliation has now
+passed, leaving zero open positions and zero pending orders after manual close. That test exposed
+a stale-interactive-submission gap: the broker-safe EA refreshed market price, but the reviewed
+intent price could drift before send. The branch now adds a file-based fail-closed USDJPY
+submission harness plus an independent MQL5 intent-price-drift gate on both initial and final ticks.
+The changed EA source still requires a fresh Windows MetaEditor compile and a negative drift-gate
+validation before final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.

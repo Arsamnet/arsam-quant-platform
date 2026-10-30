@@ -192,6 +192,7 @@ class BacktestEngine:
             signal_id = uuid5(run_id, f"bar:{bar_index}:signal")
             strategy_decision = self._strategy.evaluate(
                 market,
+                specification,
                 signal_id=signal_id,
                 evaluated_at=clock.now(),
             )

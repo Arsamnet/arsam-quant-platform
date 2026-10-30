@@ -399,6 +399,49 @@ bool Aligned(const double value,const double quantum)
    return MathAbs(value-normalized)<=quantum*0.000001;
   }
 
+bool ValidateStopsForTick(const ExecutionWork &work,const MqlTick &tick,string &reason)
+  {
+   double trigger_price=(work.side=="buy" ? tick.bid : tick.ask);
+   if((work.side=="buy" && (work.stop_loss>=trigger_price ||
+                             work.take_profit<=trigger_price)) ||
+      (work.side=="sell" && (work.stop_loss<=trigger_price ||
+                              work.take_profit>=trigger_price)))
+     {
+      reason="sl_tp_trigger_side_direction_invalid";
+      return false;
+     }
+   long stops_level=SymbolInfoInteger(work.symbol,SYMBOL_TRADE_STOPS_LEVEL);
+   long freeze_level=SymbolInfoInteger(work.symbol,SYMBOL_TRADE_FREEZE_LEVEL);
+   double minimum_distance=(double)MathMax(stops_level,freeze_level)*
+                           SymbolInfoDouble(work.symbol,SYMBOL_POINT);
+   if(MathAbs(trigger_price-work.stop_loss)<minimum_distance ||
+      MathAbs(work.take_profit-trigger_price)<minimum_distance)
+     {
+      reason="broker_trigger_side_stops_or_freeze_level_violated";
+      return false;
+     }
+   return true;
+  }
+
+bool ValidateIntentPriceDrift(const ExecutionWork &work,const MqlTick &tick,string &reason)
+  {
+   double point=SymbolInfoDouble(work.symbol,SYMBOL_POINT);
+   if(point<=0.0)
+     {
+      reason="symbol_point_unavailable";
+      return false;
+     }
+   double current_entry_price=(work.side=="buy" ? tick.ask : tick.bid);
+   double maximum_drift=(double)MaximumDeviationPoints*point;
+   if(current_entry_price<=0.0 ||
+      MathAbs(current_entry_price-work.requested_price)>maximum_drift+point*0.000001)
+     {
+      reason="intent_price_drift_exceeded";
+      return false;
+     }
+   return true;
+  }
+
 bool ValidateWork(const ExecutionWork &work,MqlTick &tick,string &reason)
   {
    datetime now=TimeGMT();
@@ -468,23 +511,10 @@ bool ValidateWork(const ExecutionWork &work,MqlTick &tick,string &reason)
       reason="spread_limit_exceeded";
       return false;
      }
-   double entry=(work.side=="buy" ? tick.ask : tick.bid);
-   if((work.side=="buy" && (work.stop_loss>=entry || work.take_profit<=entry)) ||
-      (work.side=="sell" && (work.stop_loss<=entry || work.take_profit>=entry)))
-     {
-      reason="sl_tp_direction_invalid";
+   if(!ValidateIntentPriceDrift(work,tick,reason))
       return false;
-     }
-   long stops_level=SymbolInfoInteger(work.symbol,SYMBOL_TRADE_STOPS_LEVEL);
-   long freeze_level=SymbolInfoInteger(work.symbol,SYMBOL_TRADE_FREEZE_LEVEL);
-   double minimum_distance=(double)MathMax(stops_level,freeze_level)*
-                           SymbolInfoDouble(work.symbol,SYMBOL_POINT);
-   if(MathAbs(entry-work.stop_loss)<minimum_distance ||
-      MathAbs(work.take_profit-entry)<minimum_distance)
-     {
-      reason="broker_stops_or_freeze_level_violated";
+   if(!ValidateStopsForTick(work,tick,reason))
       return false;
-     }
    if(ArsamPositionCount()>=HARD_MAX_OPEN_POSITIONS)
      {
       reason="arsam_position_limit_reached";
@@ -779,6 +809,16 @@ void ExecuteGuarded(ExecutionWork &work)
       !SymbolInfoTick(work.symbol,final_tick) || final_tick.ask-final_tick.bid>work.maximum_spread)
      {
       RejectBeforeSubmission(work,"final_pre_send_guard_failed");
+      return;
+     }
+   if(!ValidateIntentPriceDrift(work,final_tick,reason))
+     {
+      RejectBeforeSubmission(work,"final_pre_send_"+reason);
+      return;
+     }
+   if(!ValidateStopsForTick(work,final_tick,reason))
+     {
+      RejectBeforeSubmission(work,"final_pre_send_"+reason);
       return;
      }
    request.price=(work.side=="buy" ? final_tick.ask : final_tick.bid);
