@@ -119,6 +119,28 @@ def test_autonomous_demo_requires_guarded_demo_and_required_openai() -> None:
         openai_model="configured-model",
     )
     assert settings.autonomous_demo_enabled
+    assert settings.ai_min_confidence == Decimal("0.60")
+    assert settings.ai_max_uncertainty == Decimal("0.50")
+
+    with pytest.raises(ValidationError, match="MIN_CONFIDENCE"):
+        _demo_settings(
+            autonomous_demo_enabled=True,
+            ai_mode=AiMode.OPENAI,
+            ai_required=True,
+            ai_min_confidence=Decimal("0.59"),
+            openai_api_key=SecretStr("test-placeholder"),
+            openai_model="configured-model",
+        )
+
+    with pytest.raises(ValidationError, match="MAX_UNCERTAINTY"):
+        _demo_settings(
+            autonomous_demo_enabled=True,
+            ai_mode=AiMode.OPENAI,
+            ai_required=True,
+            ai_max_uncertainty=Decimal("0.51"),
+            openai_api_key=SecretStr("test-placeholder"),
+            openai_model="configured-model",
+        )
 
 
 @pytest.mark.parametrize(
@@ -128,6 +150,8 @@ def test_autonomous_demo_requires_guarded_demo_and_required_openai() -> None:
         {"max_daily_loss_fraction": Decimal("NaN")},
         {"max_daily_loss_absolute_cap": Decimal(-1)},
         {"max_trade_risk_fraction": Decimal("1.1")},
+        {"ai_min_confidence": Decimal("1.1")},
+        {"ai_max_uncertainty": Decimal("-0.1")},
     ],
 )
 def test_invalid_risk_configuration_fails_startup(changes: dict[str, Decimal]) -> None:
