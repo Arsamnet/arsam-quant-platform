@@ -38,7 +38,8 @@ fx-backtest = "fx_platform.backtesting.cli:main"
 fx-mt5-import = "fx_platform.broker_validation.cli:import_main"
 fx-broker-validate = "fx_platform.broker_validation.cli:validate_main"
 fx-broker-diff = "fx_platform.broker_validation.cli:diff_main"
-fx-demo-config-check = "fx_platform.demo_node_cli:main"\nfx-autonomous-demo = "fx_platform.autonomous_cli:main"
+fx-demo-config-check = "fx_platform.demo_node_cli:main"
+fx-autonomous-demo = "fx_platform.autonomous_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fx_platform"]
