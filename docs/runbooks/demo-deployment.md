@@ -89,8 +89,13 @@ automated trading allowed, and EURUSD trade-enabled.
 ## 5. Exact first trade
 
 Only after approval, set `EnableDemoExecution=true`. Submit one normal `/v1/decision` request—not a
-manual execution endpoint—with EURUSD, market direction from strategy, volume `0.01`, valid
-broker-side SL and TP, current account/market data, open position count zero, and reviewed spread.
+manual execution endpoint—with current account/market data, open position count zero, and reviewed
+spread. Do not paste a multi-statement interactive PowerShell sequence for the final submission:
+a terminating error in one pasted statement does not guarantee later pasted statements will not
+execute. For the reviewed USDJPY validation path, use the version-controlled
+`scripts/invoke-reviewed-usdjpy-demo-decision.ps1`, which exits the process on the first failed
+gate, rechecks quote freshness immediately before the single POST, refuses unresolved outbox state,
+and treats any POST exception as an ambiguous outcome that must not be retried.
 
 Expected path:
 
@@ -185,3 +190,36 @@ branch coverage, Ruff format/check, strict mypy, and pre-commit. Remaining work 
 deployment of this change and one explicitly approved 0.01 USDJPY DEMO execution followed by
 reconciliation, replay, kill-switch, and restart checks as applicable. Only then may final v0.5.0
 merge/tag be considered.
+
+
+## 10. USDJPY controlled execution evidence and post-test hardening
+
+The controlled USDJPY DEMO execution completed on 2026-10-30 through the normal decision path.
+Execution `e07d3d69-72d4-523c-ad5f-caff1dd604ec` / intent
+`b1117ca1-f5d7-505f-a13e-9d1c29c2504b` progressed
+`claimed -> submitted -> position_confirmed`. The reviewed intent was SELL 0.01 at requested price
+`157.263`, SL `157.363`, and TP `157.063`; broker ticket `35990233` opened at `157.301` and
+was manually closed at `157.259`. The trade showed gross P/L `+0.27 USD`, while account balance
+moved from `9999.52` to `9999.73 USD`. After close there were zero open positions and zero
+pending orders, and the durable store reported `position_confirmed=3`, `rejected=1`.
+
+This execution also exposed a validation-harness defect: a manually pasted interactive PowerShell
+freshness check raised at quote age 16.7 seconds, but subsequent pasted statements still executed
+and submitted the request. The broker entry was 38 USDJPY points away from the intent price. This
+does not prove 38 points of broker slippage; the EA intentionally refreshed market price before
+submission. It proves that pre-submission market drift needed an independent bound.
+
+The remediation is defense in depth:
+
+1. Final controlled submission is moved to the version-controlled PowerShell harness so the first
+   failed gate terminates the script before POST.
+2. The MQL5 guard independently rejects when the current BUY Ask / SELL Bid differs from immutable
+   `requested_price` by more than the reviewed `MaximumDeviationPoints`, both on initial validation
+   and again immediately before the final `OrderCheck`.
+3. `request.deviation` remains a separate broker-side slippage tolerance after submission.
+
+The completed USDJPY broker execution validates the pre-remediation artifact and the inverse-risk,
+tick-normalized SL/TP, broker execution, and reconciliation paths. The new drift-gated MQL5 source
+still requires a fresh Windows MetaEditor `0 errors, 0 warnings` compile and an explicit negative
+drift test before PR merge/tag. No additional broker order is required merely to prove the negative
+drift gate.

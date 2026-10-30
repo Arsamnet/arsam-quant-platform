@@ -423,6 +423,25 @@ bool ValidateStopsForTick(const ExecutionWork &work,const MqlTick &tick,string &
    return true;
   }
 
+bool ValidateIntentPriceDrift(const ExecutionWork &work,const MqlTick &tick,string &reason)
+  {
+   double point=SymbolInfoDouble(work.symbol,SYMBOL_POINT);
+   if(point<=0.0)
+     {
+      reason="symbol_point_unavailable";
+      return false;
+     }
+   double current_entry_price=(work.side=="buy" ? tick.ask : tick.bid);
+   double maximum_drift=(double)MaximumDeviationPoints*point;
+   if(current_entry_price<=0.0 ||
+      MathAbs(current_entry_price-work.requested_price)>maximum_drift+point*0.000001)
+     {
+      reason="intent_price_drift_exceeded";
+      return false;
+     }
+   return true;
+  }
+
 bool ValidateWork(const ExecutionWork &work,MqlTick &tick,string &reason)
   {
    datetime now=TimeGMT();
@@ -492,6 +511,8 @@ bool ValidateWork(const ExecutionWork &work,MqlTick &tick,string &reason)
       reason="spread_limit_exceeded";
       return false;
      }
+   if(!ValidateIntentPriceDrift(work,tick,reason))
+      return false;
    if(!ValidateStopsForTick(work,tick,reason))
       return false;
    if(ArsamPositionCount()>=HARD_MAX_OPEN_POSITIONS)
@@ -788,6 +809,11 @@ void ExecuteGuarded(ExecutionWork &work)
       !SymbolInfoTick(work.symbol,final_tick) || final_tick.ask-final_tick.bid>work.maximum_spread)
      {
       RejectBeforeSubmission(work,"final_pre_send_guard_failed");
+      return;
+     }
+   if(!ValidateIntentPriceDrift(work,final_tick,reason))
+     {
+      RejectBeforeSubmission(work,"final_pre_send_"+reason);
       return;
      }
    if(!ValidateStopsForTick(work,final_tick,reason))

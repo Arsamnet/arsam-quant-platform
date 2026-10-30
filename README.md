@@ -179,7 +179,10 @@ EURUSD completed the full 0.01 DEMO execution/reconciliation/replay/kill/restart
 then completed the required follow-up execution/protection/reconciliation gate; it did not repeat
 the full replay/restart/kill-switch suite. The closed trades' net results are execution evidence
 only, not strategy-performance evidence. A USDJPY request without conversion correctly failed with
-`conversion_rate_unavailable`. Reviewed inverse-quote implementation/negative tests and local
-quality gates are complete. Windows deployment and one controlled USDJPY 0.01 DEMO
-execution/reconciliation remain required before considering the final v0.5.0 merge/tag. Windows
-infrastructure hardening remains deferred.
+`conversion_rate_unavailable`. The controlled USDJPY 0.01 DEMO execution/reconciliation has now
+passed, leaving zero open positions and zero pending orders after manual close. That test exposed
+a stale-interactive-submission gap: the broker-safe EA refreshed market price, but the reviewed
+intent price could drift before send. The branch now adds a file-based fail-closed USDJPY
+submission harness plus an independent MQL5 intent-price-drift gate on both initial and final ticks.
+The changed EA source still requires a fresh Windows MetaEditor compile and a negative drift-gate
+validation before final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.

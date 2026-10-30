@@ -11,11 +11,15 @@ unexpired/non-future request, unseen IDs/nonce/fingerprint, trade-enabled symbol
 broker volume grid, tick-aligned directional SL/TP, stops/freeze distance, reviewed spread,
 fewer than one Arsam position, sufficient calculated/free margin, and successful `OrderCheck`.
 
-Market request pricing remains BUY at current Ask and SELL at current Bid. Broker-side SL/TP
-direction plus `SYMBOL_TRADE_STOPS_LEVEL` and `SYMBOL_TRADE_FREEZE_LEVEL` distances use the
-position close/trigger side instead: BUY protection is validated against current Bid and SELL
-protection against current Ask. The EA repeats this trigger-side validation from a fresh final tick
-before its second `OrderCheck`; it does not retry `OrderSend`.
+Market request pricing remains BUY at current Ask and SELL at current Bid. Before both the initial
+and final `OrderCheck`, the EA also rejects when the current entry-side quote has drifted from the
+immutable intent `requested_price` by more than the reviewed `MaximumDeviationPoints`. This is
+separate from `request.deviation`, which remains the broker-side tolerance after submission.
+Broker-side SL/TP direction plus `SYMBOL_TRADE_STOPS_LEVEL` and
+`SYMBOL_TRADE_FREEZE_LEVEL` distances use the position close/trigger side instead: BUY protection
+is validated against current Bid and SELL protection against current Ask. The EA repeats both price
+drift and trigger-side validation from a fresh final tick before its second `OrderCheck`; it does
+not retry `OrderSend`.
 
 The hard DEMO check has no input and no bypass. Expected broker identity, future-skew/deviation
 policy, and exposure ceilings are constants, not operator-overridable settings. The EA never logs

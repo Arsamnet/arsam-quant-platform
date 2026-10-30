@@ -58,3 +58,15 @@ def test_market_request_price_remains_on_entry_side_without_send_retry() -> None
     assert source.count("OrderCheck(request,check)") == 2
     assert source.count("OrderSend(request,result)") == 1
     assert "OrderSendAsync" not in source
+
+
+def test_intent_price_drift_is_bounded_on_initial_and_final_ticks() -> None:
+    source = EXECUTION_GUARD.read_text(encoding="utf-8")
+
+    assert 'double current_entry_price=(work.side=="buy" ? tick.ask : tick.bid);' in source
+    assert "double maximum_drift=(double)MaximumDeviationPoints*point;" in source
+    assert "MathAbs(current_entry_price-work.requested_price)>maximum_drift" in source
+    assert 'reason="intent_price_drift_exceeded";' in source
+    assert source.count("ValidateIntentPriceDrift(work,") == 2
+    assert "if(!ValidateIntentPriceDrift(work,tick,reason))" in source
+    assert "if(!ValidateIntentPriceDrift(work,final_tick,reason))" in source
