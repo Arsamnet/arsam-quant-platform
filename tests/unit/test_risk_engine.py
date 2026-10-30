@@ -243,6 +243,54 @@ def test_required_ai_rejects_disabled_and_direction_conflict() -> None:
     assert RiskRejection.AI_DIRECTION_CONFLICT in conflict.reasons
 
 
+def test_required_ai_rejects_neutral_low_confidence_and_high_uncertainty() -> None:
+    required_engine = _engine(ai_required=True)
+
+    neutral = _evaluate(
+        required_engine,
+        assessment=make_assessment(
+            status=AiAssessmentStatus.AVAILABLE,
+            direction=None,
+        ),
+    )
+    low_confidence = _evaluate(
+        required_engine,
+        assessment=make_assessment(
+            status=AiAssessmentStatus.AVAILABLE,
+            direction=TradeSide.BUY,
+            confidence=Decimal("0.59"),
+            uncertainty=Decimal("0.25"),
+        ),
+    )
+    high_uncertainty = _evaluate(
+        required_engine,
+        assessment=make_assessment(
+            status=AiAssessmentStatus.AVAILABLE,
+            direction=TradeSide.BUY,
+            confidence=Decimal("0.75"),
+            uncertainty=Decimal("0.51"),
+        ),
+    )
+
+    assert RiskRejection.AI_DIRECTION_REQUIRED in neutral.reasons
+    assert RiskRejection.AI_CONFIDENCE_TOO_LOW in low_confidence.reasons
+    assert RiskRejection.AI_UNCERTAINTY_TOO_HIGH in high_uncertainty.reasons
+
+
+def test_required_ai_accepts_reviewed_quality_boundary() -> None:
+    decision = _evaluate(
+        _engine(ai_required=True),
+        assessment=make_assessment(
+            status=AiAssessmentStatus.AVAILABLE,
+            direction=TradeSide.BUY,
+            confidence=Decimal("0.60"),
+            uncertainty=Decimal("0.50"),
+        ),
+    )
+
+    assert decision.approved
+
+
 def test_assessment_for_another_signal_is_rejected() -> None:
     decision = _evaluate(assessment=make_assessment(signal_id=uuid4()))
 
@@ -398,6 +446,14 @@ def test_risk_limit_configuration_rejects_unsafe_values() -> None:
         {
             "allowed_symbols": frozenset({"EURUSD"}),
             "max_market_age": timedelta(seconds=-1),
+        },
+        {
+            "allowed_symbols": frozenset({"EURUSD"}),
+            "ai_min_confidence": Decimal("1.01"),
+        },
+        {
+            "allowed_symbols": frozenset({"EURUSD"}),
+            "ai_max_uncertainty": Decimal("-0.01"),
         },
     )
 
