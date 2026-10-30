@@ -45,6 +45,8 @@ Keep secrets only in the local .env:
 
     FX_AI_MODE=openai
     FX_AI_REQUIRED=true
+    FX_AI_MIN_CONFIDENCE=0.60
+    FX_AI_MAX_UNCERTAINTY=0.50
     FX_OPENAI_API_KEY=<environment-owned key>
     FX_OPENAI_MODEL=<reviewed model name>
     FX_OPENAI_TIMEOUT_SECONDS=8
@@ -91,7 +93,9 @@ candidate, and calls only the structured OpenAI advisory boundary. It does not c
 does not open the SQLite outbox, and cannot call MT5 execution. The safe JSON result explicitly
 reports risk_engine_called=false, outbox_called=false, and execution_called=false.
 
-Provider/schema failure is a stop condition.
+Provider/schema failure is a stop condition. Required AI advice also fails closed if it is neutral,
+has confidence below 0.60, or uncertainty above 0.50. Autonomous DEMO startup refuses configurations
+that relax those reviewed thresholds, though stricter values are allowed.
 
 ## 7. Controlled one-cycle decision validation
 
