@@ -1,4 +1,4 @@
-"""Secure settings with explicit demo and forbidden-live startup validation."""
+"""Secure settings with explicit demo, autonomy, and forbidden-live startup validation."""
 
 from decimal import Decimal
 from enum import StrEnum
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     ai_required: bool = False
     openai_api_key: SecretStr | None = None
     openai_model: str | None = None
+    openai_timeout_seconds: float = Field(default=8.0, ge=1.0, le=30.0)
     database_url: SecretStr = SecretStr(
         "postgresql+psycopg://fx_platform:CHANGE_ME@127.0.0.1:5432/fx_platform"
     )
@@ -71,6 +72,15 @@ class Settings(BaseSettings):
     demo_magic_number: int = Field(default=5050001, ge=1, le=2147483647)
     demo_execution_secret: SecretStr | None = None
     demo_outbox_path: Path = Path("var/demo-execution.sqlite3")
+    autonomous_demo_enabled: bool = False
+    autonomous_snapshot_path: Path = Path("var/autonomous-demo-snapshot.json")
+    autonomous_poll_interval_seconds: float = Field(default=1.0, ge=0.25, le=60.0)
+    autonomous_max_snapshot_age_seconds: int = Field(default=15, ge=1, le=60)
+    autonomous_account_id: str = Field(
+        default="fibo-demo-usd-local",
+        min_length=1,
+        max_length=64,
+    )
 
     @field_validator("bind_host")
     @classmethod
@@ -99,7 +109,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_safe_mode(self) -> Self:
-        """Fail startup for live or an incompletely locked demo configuration."""
+        """Fail startup for live or incompletely locked demo/autonomous configuration."""
         if self.trading_mode is TradingMode.LIVE:
             raise ValueError("FX_TRADING_MODE=live is forbidden")
         if self.trading_mode is TradingMode.DEMO:
@@ -112,6 +122,8 @@ class Settings(BaseSettings):
             or not self.openai_model
         ):
             raise ValueError("OpenAI mode requires FX_OPENAI_API_KEY and FX_OPENAI_MODEL")
+        if self.autonomous_demo_enabled:
+            self._validate_autonomous_configuration()
         if self.max_daily_loss is not None:
             raise ValueError(
                 "FX_MAX_DAILY_LOSS is retired; configure FX_MAX_DAILY_LOSS_FRACTION and "
@@ -188,6 +200,14 @@ class Settings(BaseSettings):
             raise ValueError("FX_DEMO_MAGIC_NUMBER must equal the reviewed value 5050001")
         if not self.demo_require_stop_loss or not self.demo_require_take_profit:
             raise ValueError("demo execution requires broker-side stop loss and take profit")
+
+    def _validate_autonomous_configuration(self) -> None:
+        if self.trading_mode is not TradingMode.DEMO:
+            raise ValueError("autonomous trading is permitted only in guarded DEMO mode")
+        if self.ai_mode is not AiMode.OPENAI or not self.ai_required:
+            raise ValueError("autonomous DEMO requires OpenAI advisory with FX_AI_REQUIRED=true")
+        if not self.autonomous_account_id:
+            raise ValueError("autonomous DEMO requires a stable non-secret account identifier")
 
     @property
     def active_node_id(self) -> str:
