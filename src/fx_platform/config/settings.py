@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     allowed_symbols: frozenset[str] = frozenset({"EURUSD", "GBPUSD", "USDJPY"})
     ai_mode: AiMode = AiMode.DISABLED
     ai_required: bool = False
+    ai_min_confidence: Decimal = Decimal("0.60")
+    ai_max_uncertainty: Decimal = Decimal("0.50")
     openai_api_key: SecretStr | None = None
     openai_model: str | None = None
     openai_timeout_seconds: float = Field(default=8.0, ge=1.0, le=30.0)
@@ -148,9 +150,11 @@ class Settings(BaseSettings):
         for field_name, fraction in (
             ("max_daily_loss_fraction", self.max_daily_loss_fraction),
             ("max_trade_risk_fraction", self.max_trade_risk_fraction),
+            ("ai_min_confidence", self.ai_min_confidence),
+            ("ai_max_uncertainty", self.ai_max_uncertainty),
         ):
-            if fraction > Decimal(1):
-                raise ValueError(f"{field_name} must not exceed one")
+            if not fraction.is_finite() or fraction < Decimal(0) or fraction > Decimal(1):
+                raise ValueError(f"{field_name} must be between zero and one")
         return self
 
     def _validate_demo_configuration(self) -> None:
