@@ -75,6 +75,8 @@ uses Semantic Versioning during pre-production.
 
 ### Security
 
+- Require explicit non-neutral AI direction plus confidence >= 0.60 and uncertainty <= 0.50 when
+  `FX_AI_REQUIRED=true`; autonomous DEMO cannot relax those reviewed thresholds.
 - Preserve fail-closed behavior for absent, malformed, stale, future, non-inverse, or ambiguous
   conversion inputs; exact-inverse derivation uses only caller-supplied data and never performs a
   broker/network lookup or cross-rate inference.
