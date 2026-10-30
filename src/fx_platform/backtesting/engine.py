@@ -30,7 +30,7 @@ from fx_platform.backtesting.models import (
 from fx_platform.backtesting.portfolio import SimulatedPortfolio
 from fx_platform.backtesting.serialization import canonical_json, fingerprint
 from fx_platform.domain.common import TradingMode
-from fx_platform.domain.execution import ExecutionIntent
+from fx_platform.domain.execution import ExecutionIntent, OrderType
 from fx_platform.domain.market import (
     AccountSnapshot,
     CurrencyConversionRate,
@@ -192,6 +192,7 @@ class BacktestEngine:
             signal_id = uuid5(run_id, f"bar:{bar_index}:signal")
             strategy_decision = self._strategy.evaluate(
                 market,
+                specification,
                 signal_id=signal_id,
                 evaluated_at=clock.now(),
             )
@@ -299,7 +300,7 @@ class BacktestEngine:
     ) -> dict[str, SymbolSpecification]:
         if len(dataset.metadata.symbols) != 1:
             raise BacktestConfigurationError(
-                "version 0.4.0 backtest runs require exactly one symbol"
+                "version 0.5.0 backtest runs require exactly one symbol"
             )
         specifications: dict[str, SymbolSpecification] = {}
         for symbol in dataset.metadata.symbols:
@@ -408,8 +409,10 @@ class BacktestEngine:
         if signal.stop_loss is None:
             raise BacktestConfigurationError("approved backtest signal has no valid stop loss")
         return ExecutionIntent(
+            schema_version="1.0",
             execution_id=uuid5(run_id, f"bar:{bar_index}:execution"),
-            decision_id=uuid5(run_id, f"bar:{bar_index}:decision"),
+            intent_id=uuid5(run_id, f"bar:{bar_index}:intent"),
+            request_id=uuid5(run_id, f"bar:{bar_index}:decision"),
             signal_id=signal.signal_id,
             risk_decision_id=risk_decision_id,
             created_at=bar.closed_at,
@@ -417,10 +420,17 @@ class BacktestEngine:
             node_id="deterministic-backtest",
             symbol=signal.symbol,
             side=signal.side,
+            order_type=OrderType.MARKET,
             volume=signal.volume,
             entry_price=signal.entry_price,
             stop_loss=signal.stop_loss,
             take_profit=signal.take_profit,
+            maximum_spread=Decimal("0.00050"),
+            risk_fingerprint=uuid5(run_id, f"bar:{bar_index}:risk-fingerprint").hex * 2,
+            request_fingerprint=uuid5(run_id, f"bar:{bar_index}:request-fingerprint").hex * 2,
+            nonce=f"backtest-{run_id}-{bar_index}",
+            strategy_name=signal.strategy_name,
+            strategy_version=signal.strategy_version,
             trading_mode=TradingMode.PAPER,
         )
 

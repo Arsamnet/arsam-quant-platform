@@ -7,8 +7,9 @@
 - **AiAssessment:** validated bounded advice with explicit available/disabled/unavailable/invalid
   status; never an order.
 - **RiskDecision:** immutable deterministic approval/rejection and machine-readable reasons.
-- **ExecutionIntent:** short-lived paper-only instruction created only after risk approval.
-- **ExecutionResult:** idempotent paper adapter outcome.
+- **ExecutionIntent:** short-lived immutable paper/demo instruction created only after risk approval.
+- **ExecutionResult:** explicit paper or broker/reconciliation outcome; unknown is never success.
+- **ExecutionOutbox:** DEMO-only durable local store that claims an approved intent at most once.
 - **EconomicEvent:** versioned point-in-time scheduled release with impact and affected currencies.
 - **TradingNode:** isolated local runtime associated with a node identity and future broker account.
 - **ControlPlane:** future SaaS coordination system with no direct broker credentials or OrderSend.

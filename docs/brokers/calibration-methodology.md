@@ -29,6 +29,31 @@ These cases do not prove generic tick-value identity. The platform captures term
 profit, and loss tick values separately and does not assume `tick_value == contract_size *
 tick_size` for every instrument.
 
+## Sanitized inverse-risk calibration — 2026-10-27
+
+A fresh read-only observation used FIBO Group, Ltd / FIBOGroup-MT5 Server, MT5 build `6230`, a USD
+DEMO account, retail hedging, and 1:100 leverage. No account identifier or raw snapshot is committed.
+The sanitized USDJPY values were:
+
+```text
+Bid = 157.776
+Ask = 157.786
+tick_value_profit = 0.6337697894616760 USD
+tick_value_loss = 0.6338099584220667 USD
+one 0.001 tick at one full lot = 100 JPY
+```
+
+At Decimal precision, `100 JPY / 157.786 Ask` is approximately the reported profit-side tick value,
+while `100 JPY / 157.776 Bid` is approximately the reported loss-side tick value. Therefore the
+reviewed exact-pair inverse derivation used for stop-loss risk exposure is
+`JPY -> USD rate = Decimal(1) / USDJPY Bid`.
+
+This calibration distinguishes two concepts: positive/profit conversion corresponds to `1 / Ask`,
+whereas stop-loss/negative-exposure conversion corresponds to `1 / Bid` in this reviewed case.
+Arsam's current derivation boundary needs the latter because it calculates potential loss at the
+stop. This is calibration evidence for risk semantics, not a universal claim that JPY-to-USD always
+uses Bid, not a profitability claim, and not authorization for live trading.
+
 ## Margin cases
 
 `OrderCalcMargin` inputs/results are archived as read-only evidence. Version 0.4.0 has no full margin

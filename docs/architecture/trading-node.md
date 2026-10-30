@@ -1,73 +1,62 @@
-# Trading Node and v1 Contract
+# Trading Node and Versioned Local Contracts
 
 ## Runtime
 
-FastAPI listens only on `127.0.0.1` by default. One decision request carries already observed market
-and account snapshots. The service checks durable audit availability, request/node/replay state,
-then rejects an unconfigured symbol before strategy or any downstream provider. For a configured
-symbol it loads broker-independent metadata, runs the deterministic strategy, obtains explicit
-AI/calendar states, evaluates risk, persists an intent stage, invokes the paper adapter, and
-persists completion. The Risk Engine repeats symbol validation as defense in depth.
+FastAPI is restricted to `127.0.0.1`, `::1`, or `localhost`; the supported demo command and MT5 EA
+use `127.0.0.1`. The default `paper` composition retains the in-memory fake executor. The explicit
+`demo` composition uses the same strategy/advisory/risk service but swaps the executor for the
+durable local SQLite outbox.
 
-The in-memory repository is the active bootstrap adapter. SQLAlchemy/PostgreSQL is scaffolded but is
-not selected by the composition root until transactional/recovery behavior receives integration and
-operational review.
-
-## Request contract
-
-`POST /v1/decision` accepts JSON schema `1.0` with:
-
-```json
-{
-  "schema_version": "1.0",
-  "request_id": "40000000-0000-4000-8000-000000000004",
-  "timestamp": "2026-08-30T12:00:00Z",
-  "nonce": "unique_nonce_1234567890",
-  "node_id": "local-paper-node",
-  "market": {
-    "snapshot_id": "10000000-0000-4000-8000-000000000001",
-    "symbol": "EURUSD",
-    "observed_at": "2026-08-30T12:00:00Z",
-    "bid": "1.1000",
-    "ask": "1.1002",
-    "previous_close": "1.0990"
-  },
-  "account": {
-    "account_id": "paper-account",
-    "observed_at": "2026-08-30T12:00:00Z",
-    "balance": "10000.00",
-    "equity": "10000.00",
-    "daily_realized_pnl": "0.00",
-    "open_position_count": 0,
-    "currency": "USD"
-  },
-  "conversion_rates": []
-}
+```text
+decision request -> request/node/symbol checks -> strategy -> optional AI/calendar
+                 -> RiskEngine -> approved immutable intent -> SQLite pending row
+                 -> authenticated EA claim -> terminal-side guards -> broker
+                 -> strict result -> orders/deals/positions reconciliation
 ```
 
-Financial values are decimal strings. Extra fields, naive timestamps, stale/future requests,
-unknown symbols, wrong nodes, reused IDs/nonces, missing state, and invalid shapes reject or produce
-an explicit non-execution outcome. `account.currency` defaults to `USD` for compatibility, and
-`conversion_rates` is optional when the symbol tick value is already in account currency. A required
-rate is a directed object with `source_currency`, `target_currency`, decimal-string `rate`, and
-`observed_at`; the risk engine does not infer inverses or cross rates. A response contains trace IDs
-only when the corresponding stage exists.
+There is no direct API-to-broker endpoint. Only an approved risk decision can construct an intent.
+The active decision audit remains in-memory in this local composition, while the demo outbox has
+durable unique execution/intent/request/nonce/fingerprint keys. Replaying after Python restart is
+therefore suppressed by the outbox even when the process audit cache is empty.
 
-When `FX_HMAC_SECRET` is set, send `X-FX-Signature: sha256=<hex>`, where `<hex>` is HMAC-SHA256 of
-the exact raw request bytes. Missing, malformed, wrong, or payload-mismatched signatures reject;
-the 32-byte digest is compared in constant time. Replay checks remain independent and still run for
-validly signed requests. With an empty secret, unauthenticated operation is permitted only for the
-loopback bootstrap. HMAC is not a substitute for TLS; communication beyond localhost requires a
-separately reviewed authenticated TLS design. Public binding remains prohibited.
+## Decision request
 
-## Future MQL5 validator
+`POST /v1/decision` keeps schema `1.0`. It requires request UUID, aware timestamp, 16+ character
+nonce, matching node ID, strict market/account snapshots, and optional explicit directed conversion
+rates. The optional `inverse_conversion_quotes` collection carries a complete broker Bid/Ask
+snapshot and an explicit requested conversion; Python never looks up a symbol. Financial values are
+JSON strings. Extra fields, naive/stale/future time, wrong nodes, reused identity, unknown symbols,
+missing required state, and invalid decimals reject.
 
-The EA must independently enforce schema/authentication, allowed symbol, maximum volume/positions,
-required broker-side SL/TP, spread, request expiry, request/nonce uniqueness, idempotency, and demo
-authorization before any `OrderSend`. It must capture the broker response and reconcile state. No EA
-may contain SaaS, OpenAI, news, database, or broker secrets in source code.
+When `FX_HMAC_SECRET` is set, send `X-FX-Signature: sha256=<hex>` where the digest is HMAC-SHA256 of
+the exact bytes. Missing/malformed signatures reject and Python uses constant-time comparison.
 
-Version 0.4.0 does not implement that future validator. It provides a separate read-only metadata
-script whose one-way file output is imported offline. Informational broker readiness cannot enable
-demo mode, create an `ExecutionIntent`, or invoke the current paper adapter. See the
-[probe guide](../brokers/mt5-read-only-probe.md).
+USDJPY still requires a fresh, explicit JPY-to-USD rate for the reviewed static tick-value
+semantics. A caller may supply that directed rate or request the reviewed exact inverse derivation
+from a complete USDJPY quote. Because this boundary calculates stop-loss exposure, the reviewed
+loss-side derivation uses `1 / bid`; the separate positive/profit conversion evidence corresponds to
+`1 / ask`. This is not a universal rule that JPY-to-USD always uses Bid. Automatic inversion,
+arbitrary reverse-rate inference, and cross rates remain forbidden. Accepted quote provenance is
+included in the request fingerprint.
+
+## Demo execution API
+
+The demo endpoints and schema are defined in
+[the execution contract](../execution/demo-execution-contract.md). They exist only after settings
+validate explicit demo enablement, exact identity/limits, a 32+ character secret, and loopback bind.
+The EA sends that secret as `X-FX-Execution-Token`; it never appears in payloads or logs.
+
+`GET /v1/demo-execution/next` changes `pending` to `claimed` in one immediate transaction. A claimed,
+submitted, filled, partially-filled, unknown, or reconciliation-failed row causes `409` and blocks
+new delivery. No lease expiry requeues broker work.
+
+## Fixed execution policy
+
+Python configuration locks FIBO company/server, USD, retail hedging, leverage 100, three symbols,
+0.01 lot, one position, required SL/TP, TTL 5–15 seconds, node, and magic. The MQL5 guard repeats the
+safety-critical values as non-overridable constants immediately before broker submission. Its
+independent `EnableDemoExecution` input defaults false.
+
+The bearer token is the smallest reviewable mechanism compatible with MQL5 and one-host loopback.
+It does not authenticate operating-system process identity and is not acceptable beyond localhost.
+Remote transport requires a separately reviewed mutually authenticated design.

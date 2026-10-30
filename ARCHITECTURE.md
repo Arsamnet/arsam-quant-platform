@@ -14,16 +14,17 @@ Request/node/symbol validation -> SymbolSpecification -> Deterministic Strategy
                                           | account-currency exposure
                                           | per-symbol spread policy
                                                             v
-                                             Paper Execution Intent
+                                             Execution Intent
                                                             v
-                                        Final Validator / Future MQL5 EA
+                                  Paper fake OR durable demo outbox
                                                             v
-                                                          Broker
+                                      localhost polling MQL5 guard
+                                                            v
+                                                    FIBOGroup DEMO
 ```
 
-Risk can reject every candidate regardless of AI output. MQL5 will be an independent last-line
-guard; version 0.4.0 includes no order-sending MQL5 code. The current API, fake executor, and audit
-repository run within one loopback-only trading node.
+Risk can reject every candidate regardless of AI output. In 0.5.0 MQL5 is an independent last-line
+guard. Live mode fails Python startup and the EA separately rejects every non-DEMO account.
 
 Version 0.3.0 adds an outer `fx_platform.backtesting` composition. It streams immutable historical
 bars through a monotonic UTC clock, the existing strategy/null-advisory/risk pipeline, a no-network
@@ -58,8 +59,23 @@ MT5 read-only script -> untrusted JSON -> strict Decimal/UTC parser
                                                             -> guarded SymbolSpecification mapping
 ```
 
-There is no Python-to-terminal runtime connection and no path from informational readiness to an
-execution adapter. The bootstrap runtime continues using reviewed static specifications.
+The 0.4 calibration flow remains offline and cannot itself enable execution. Runtime risk continues
+using reviewed static specifications.
+
+Version 0.5.0 adds a separate demo composition without changing dependency direction:
+
+```text
+RiskDecision APPROVED -> immutable/fingerprinted ExecutionIntent
+                      -> atomic SQLite DEMO outbox (pending)
+                      -> authenticated GET on 127.0.0.1 (claimed once)
+                      -> MQL5 fixed identity + market/account/symbol guards
+                      -> FILE_COMMON journal -> OrderCheck -> sole OrderSend
+                      -> broker order/deal/position -> strict result/reconciliation API
+```
+
+Claimed or ambiguous work is never redelivered. The EA and Python both block until magic/comment
+broker history resolves it. SQLite is intentionally a narrow single-node DEMO adapter, not the
+production persistence design. See ADR-0022 and the execution documentation.
 
 Detailed views and decisions:
 

@@ -5,6 +5,72 @@ uses Semantic Versioning during pre-production.
 
 ## [Unreleased]
 
+### Added
+
+- Explicit audited exact-pair inverse conversion input for schema 1.0, retaining broker symbol,
+  pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Bid loss-side provenance, and the
+  final directed risk rate in deterministic request identity. Cross-rate inference remains
+  forbidden.
+- Immutable schema-1.0 execution intents/results with request/risk fingerprints, market-only order
+  type, exact decimal strings, UTC times, strategy/risk identities, and explicit reconciliation.
+- Atomic synchronized SQLite DEMO outbox with durable execution/intent/request/nonce/fingerprint
+  uniqueness, claim-once delivery, strict result transitions, restart persistence, and fail-closed
+  unresolved-state blocking.
+- Authenticated loopback-only demo next/result/reconcile/status endpoints and non-secret node status.
+- Default-off `ArsamDemoExecutionGuard.mq5`, the sole reviewed trade boundary, with fixed FIBOGroup
+  DEMO identity, 0.01 lot/one-position caps, required broker SL/TP, spread/grid/stops/freeze/margin/
+  `OrderCheck` gates, FILE_COMMON journal, magic/comment correlation, and no automatic retry.
+- Windows interactive deployment/start/check/install scripts, ADR-0022, execution/reconciliation
+  documentation, first-trade/negative/replay/kill/restart runbook, and comprehensive tests.
+- Version-controlled USDJPY intent-price-drift negative-test harness with a single synthetic DEMO
+  decision, a >10-point drift proof, an independent pre-OrderCheck SELL stop-direction backstop,
+  durable rejection/count verification, and explicit no-retry handling.
+
+### Changed
+
+- Prepare development version 0.5.0 while preserving paper behavior and deterministic backtests.
+- Complete the full controlled EURUSD execution/reconciliation/replay/kill/restart validation, then
+  complete the required GBPUSD follow-up execution/protection/reconciliation gate. This is
+  execution-path evidence, not strategy-profitability evidence; GBPUSD did not independently repeat
+  the full replay/restart/kill-switch suite.
+- Confirm the USDJPY missing-conversion negative gate returns `conversion_rate_unavailable` without
+  execution, then complete the controlled inverse-conversion USDJPY DEMO execution/reconciliation
+  path and the post-remediation `intent_price_drift_exceeded` negative gate without another order.
+- Express the illustrative strategy stop as 100 reviewed symbol ticks through the resolved
+  `SymbolSpecification`, preserving EURUSD/GBPUSD `0.00100` stops while using `0.100` for USDJPY.
+- Validate MQL5 broker-side SL/TP direction and stops/freeze distance against Bid for BUY and Ask
+  for SELL on both initial and final ticks while retaining Ask/BUY and Bid/SELL market request price.
+- Permit `demo` startup only with explicit enablement, exact reviewed identity/limits, a 32+
+  character environment-owned secret, and loopback binding; continue rejecting `live` startup.
+- Require take profit in demo risk policy and use 0.01 lot / one position application limits.
+- Scope the MQL5 forbidden-trade scan so every component except the reviewed guard remains read-only
+  and exactly one production-code `OrderSend` call exists.
+
+### Fixed
+
+- Block the unsafe USDJPY one-tick stop found during disabled-EA preflight; no order was placed.
+- Accept successful FIBO MQL5 `OrderCheck` semantics (`bool=true`, `GetLastError()=0`,
+  `check.retcode=0`) while preserving trade-server retcode handling for `OrderSend`.
+- Tolerate at most `1e-12` broker-price serialization residue in durable result matching while
+  keeping volume/identity exact and rejecting a real one-tick mismatch.
+- Serialize unsigned 64-bit MQL5 broker order/deal IDs without signed narrowing and remove the
+  incompatible pre-1.0 Market version property while retaining the platform version as 0.5.0.
+- Validate MetaEditor compilation using an exact zero-error/zero-warning result and a freshly
+  generated non-empty EX5 artifact instead of assuming the successful process exit code is zero.
+
+### Security
+
+- Preserve fail-closed behavior for absent, malformed, stale, future, non-inverse, or ambiguous
+  conversion inputs; exact-inverse derivation uses only caller-supplied data and never performs a
+  broker/network lookup or cross-rate inference.
+- Add independent Python and MQL5 live-account barriers, independent default-off kill switches, and
+  constant-time Python token verification without logging headers, secrets, or account login.
+- Treat unknown, failed, claimed, submitted, filled, and partial reconciliation as blocking; compare
+  reported symbol/side/volume/price/SL/TP against the claimed intent and reject overfills/conflicts.
+- Defer Windows infrastructure hardening explicitly; 0.5.0 is not production-ready and LIVE remains
+  forbidden. The reviewed v0.5.0 DEMO execution, inverse-conversion, compile/hash, and negative-drift
+  validation gates are complete; any future MQL5 change requires a fresh deploy/compile/hash gate.
+
 ## [0.4.0] - 2026-09-06
 
 ### Added

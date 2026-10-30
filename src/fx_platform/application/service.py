@@ -1,5 +1,6 @@
-"""Minimal deterministic decision workflow with fail-closed boundaries."""
+"""Deterministic decision workflow with fail-closed execution boundaries."""
 
+import hashlib
 from datetime import datetime, timedelta
 from uuid import UUID, uuid5
 
@@ -20,7 +21,7 @@ from fx_platform.application.ports import (
     SymbolSpecificationProvider,
 )
 from fx_platform.domain.common import TradingMode
-from fx_platform.domain.execution import ExecutionIntent, ExecutionStatus
+from fx_platform.domain.execution import ExecutionIntent, ExecutionStatus, OrderType
 from fx_platform.domain.market import SymbolSpecification
 from fx_platform.domain.risk import RiskEngine
 from fx_platform.domain.strategy import SignalCandidate
@@ -30,6 +31,78 @@ _ID_NAMESPACE = UUID("f344fe7f-5286-4ff9-a0aa-7217f58e172c")
 
 def _derived_id(request_id: UUID, purpose: str) -> UUID:
     return uuid5(_ID_NAMESPACE, f"{request_id}:{purpose}")
+
+
+def _fingerprint(*values: object) -> str:
+    canonical = "\x1f".join(str(value) for value in values).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _request_fingerprint(command: DecisionCommand) -> str:
+    conversion_values = tuple(
+        value
+        for rate in command.conversion_rates
+        for value in (
+            rate.source_currency,
+            rate.target_currency,
+            rate.rate,
+            rate.observed_at.isoformat(),
+        )
+    )
+    inverse_conversion_records = tuple(
+        sorted(
+            (
+                (
+                    derivation.requested_source_currency,
+                    derivation.requested_target_currency,
+                    derivation.broker_quote.source_symbol,
+                    derivation.broker_quote.base_currency,
+                    derivation.broker_quote.quote_currency,
+                    derivation.broker_quote.bid,
+                    derivation.broker_quote.ask,
+                    derivation.broker_quote.observed_at.isoformat(),
+                    derivation.derivation_method.value,
+                    derivation.price_side.value,
+                    derivation.conversion_rate.source_currency,
+                    derivation.conversion_rate.target_currency,
+                    derivation.conversion_rate.rate,
+                    derivation.conversion_rate.observed_at.isoformat(),
+                )
+                for derivation in command.inverse_conversion_derivations
+            ),
+            key=lambda record: tuple(str(value) for value in record),
+        )
+    )
+    inverse_conversion_values = tuple(
+        value
+        for record in inverse_conversion_records
+        for value in (
+            "inverse_conversion_quote",
+            *record,
+        )
+    )
+    return _fingerprint(
+        command.schema_version,
+        command.request_id,
+        command.request_timestamp.isoformat(),
+        command.nonce,
+        command.node_id,
+        command.market.snapshot_id,
+        command.market.symbol,
+        command.market.observed_at.isoformat(),
+        command.market.bid,
+        command.market.ask,
+        command.market.previous_close,
+        command.account.account_id,
+        command.account.observed_at.isoformat(),
+        command.account.balance,
+        command.account.equity,
+        command.account.daily_realized_pnl,
+        command.account.open_position_count,
+        command.account.currency,
+        *conversion_values,
+        *inverse_conversion_values,
+    )
 
 
 class DecisionService:
@@ -52,8 +125,8 @@ class DecisionService:
         max_request_age: timedelta = timedelta(seconds=30),
         max_future_skew: timedelta = timedelta(seconds=2),
     ) -> None:
-        if trading_mode is not TradingMode.PAPER:
-            raise ValueError("DecisionService supports paper mode only")
+        if trading_mode is TradingMode.LIVE:
+            raise ValueError("DecisionService forbids live mode")
         if not node_id:
             raise ValueError("node_id must not be empty")
         self._node_id = node_id
@@ -129,6 +202,7 @@ class DecisionService:
         signal_id = _derived_id(command.request_id, "signal")
         strategy_decision = self._strategy.evaluate(
             command.market,
+            symbol_specification,
             signal_id=signal_id,
             evaluated_at=now,
         )
@@ -201,7 +275,7 @@ class DecisionService:
             economic_events=calendar.events,
             calendar_available=calendar.available,
             symbol_specification=symbol_specification,
-            conversion_rates=command.conversion_rates,
+            conversion_rates=command.directed_conversion_rates,
         )
         if not risk_decision.approved:
             reasons = tuple(reason.value for reason in risk_decision.reasons)
@@ -229,7 +303,13 @@ class DecisionService:
                 reasons=reasons,
             )
 
-        intent = self._approved_intent(command, now, signal, risk_decision.risk_decision_id)
+        intent = self._approved_intent(
+            command,
+            now,
+            signal,
+            risk_decision.risk_decision_id,
+            symbol_specification,
+        )
         self._audit_repository.save(
             self._audit_record(
                 command=command,
@@ -245,12 +325,17 @@ class DecisionService:
             )
         )
         execution_result = self._executor.execute(intent)
+        final_stage = (
+            AuditStage.OUTBOXED
+            if execution_result.status is ExecutionStatus.PENDING
+            else AuditStage.COMPLETED
+        )
         completed_at = self._clock.now()
         self._audit_repository.save(
             self._audit_record(
                 command=command,
                 now=completed_at,
-                stage=AuditStage.COMPLETED,
+                stage=final_stage,
                 signal=signal,
                 ai_status=assessment.status.value,
                 risk_decision_id=risk_decision.risk_decision_id,
@@ -262,6 +347,8 @@ class DecisionService:
         )
         if execution_result.status is ExecutionStatus.DUPLICATE:
             outcome_status = DecisionOutcomeStatus.DUPLICATE
+        elif execution_result.status is ExecutionStatus.PENDING:
+            outcome_status = DecisionOutcomeStatus.DEMO_QUEUED
         elif execution_result.status is ExecutionStatus.PAPER_FILLED:
             outcome_status = DecisionOutcomeStatus.PAPER_EXECUTED
         else:
@@ -274,7 +361,7 @@ class DecisionService:
             execution_id=intent.execution_id,
             execution_status=execution_result.status,
             reasons=()
-            if execution_result.status is ExecutionStatus.PAPER_FILLED
+            if execution_result.status in {ExecutionStatus.PAPER_FILLED, ExecutionStatus.PENDING}
             else (execution_result.message,),
         )
 
@@ -318,12 +405,18 @@ class DecisionService:
         now: datetime,
         signal: SignalCandidate,
         risk_decision_id: UUID,
+        symbol_specification: SymbolSpecification,
     ) -> ExecutionIntent:
         if signal.stop_loss is None:
             raise RuntimeError("approved signal unexpectedly has no stop loss")
+        maximum_spread = symbol_specification.maximum_spread
+        if maximum_spread is None:
+            raise RuntimeError("approved signal unexpectedly has no spread policy")
         return ExecutionIntent(
+            schema_version="1.0",
             execution_id=_derived_id(command.request_id, "execution"),
-            decision_id=command.request_id,
+            intent_id=_derived_id(command.request_id, "intent"),
+            request_id=command.request_id,
             signal_id=signal.signal_id,
             risk_decision_id=risk_decision_id,
             created_at=now,
@@ -331,10 +424,25 @@ class DecisionService:
             node_id=self._node_id,
             symbol=signal.symbol,
             side=signal.side,
+            order_type=OrderType.MARKET,
             volume=signal.volume,
             entry_price=signal.entry_price,
             stop_loss=signal.stop_loss,
             take_profit=signal.take_profit,
+            maximum_spread=maximum_spread,
+            risk_fingerprint=_fingerprint(
+                risk_decision_id,
+                signal.signal_id,
+                signal.symbol,
+                signal.side.value,
+                signal.volume,
+                signal.stop_loss,
+                signal.take_profit,
+            ),
+            request_fingerprint=_request_fingerprint(command),
+            nonce=command.nonce,
+            strategy_name=signal.strategy_name,
+            strategy_version=signal.strategy_version,
             trading_mode=self._trading_mode,
         )
 

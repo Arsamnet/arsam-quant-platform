@@ -20,6 +20,7 @@ from fx_platform.application.models import (
 from fx_platform.application.service import DecisionService
 from fx_platform.domain.common import TradingMode
 from fx_platform.domain.execution import ExecutionStatus
+from fx_platform.domain.market import InverseConversionRateDerivation
 from fx_platform.domain.risk import RiskEngine, RiskLimits
 from fx_platform.domain.strategy import PreviousCloseMomentumStrategy
 from tests.helpers import (
@@ -27,6 +28,7 @@ from tests.helpers import (
     REQUEST_ID,
     FixedClock,
     make_account,
+    make_inverse_conversion_derivation,
     make_market,
     make_specification,
 )
@@ -51,6 +53,7 @@ def _command(
     symbol: str = "EURUSD",
     daily_realized_pnl: Decimal = Decimal(0),
     open_position_count: int = 0,
+    inverse_conversion_derivations: tuple[InverseConversionRateDerivation, ...] = (),
 ) -> DecisionCommand:
     return DecisionCommand(
         request_id=request_id,
@@ -67,6 +70,7 @@ def _command(
             daily_realized_pnl=daily_realized_pnl,
             open_position_count=open_position_count,
         ),
+        inverse_conversion_derivations=inverse_conversion_derivations,
     )
 
 
@@ -286,6 +290,26 @@ def test_unknown_symbol_is_rejected_before_strategy_and_all_downstream_calls() -
     assert repository.get(REQUEST_ID).ai_status == "not_requested"
 
 
+def test_mismatched_resolved_specification_fails_closed_before_downstream_calls() -> None:
+    class _MismatchedSpecificationProvider:
+        def get(self, symbol: str):
+            assert symbol == "EURUSD"
+            return make_specification(symbol="GBPUSD", base_currency="GBP")
+
+    service, executor, repository = _service(
+        advisor=_ExplodingAdvisor(),
+        calendar=_NeverCalledCalendar(),
+        risk_engine=_NeverCalledRiskEngine(),
+        symbol_specifications=_MismatchedSpecificationProvider(),
+    )
+
+    with pytest.raises(ValueError, match="does not match market symbol"):
+        service.decide(_command())
+
+    assert executor.executed_intents == ()
+    assert repository.get(REQUEST_ID) is None
+
+
 def test_missing_required_currency_conversion_never_creates_execution_intent() -> None:
     usd_jpy = make_specification(
         symbol="USDJPY",
@@ -305,6 +329,43 @@ def test_missing_required_currency_conversion_never_creates_execution_intent() -
     assert outcome.reasons == ("conversion_rate_unavailable",)
     assert outcome.execution_id is None
     assert executor.executed_intents == ()
+
+
+def test_request_fingerprint_covers_every_inverse_quote_and_derivation_fact() -> None:
+    baseline = make_inverse_conversion_derivation()
+    changed_derivations = (
+        make_inverse_conversion_derivation(bid=Decimal("157.775")),
+        make_inverse_conversion_derivation(ask=Decimal("157.787")),
+        make_inverse_conversion_derivation(observed_at=NOW - timedelta(seconds=1)),
+        make_inverse_conversion_derivation(
+            source_currency="EUR",
+            target_currency="GBP",
+            source_symbol="GBPEUR",
+            pair_base_currency="GBP",
+            pair_quote_currency="EUR",
+        ),
+    )
+
+    def fingerprint(derivation: InverseConversionRateDerivation) -> str:
+        service, executor, _ = _service()
+        outcome = service.decide(_command(inverse_conversion_derivations=(derivation,)))
+        assert outcome.status is DecisionOutcomeStatus.PAPER_EXECUTED
+        return executor.executed_intents[0].request_fingerprint
+
+    baseline_fingerprint = fingerprint(baseline)
+
+    assert fingerprint(baseline) == baseline_fingerprint
+    assert all(fingerprint(changed) != baseline_fingerprint for changed in changed_derivations)
+
+    other = changed_derivations[-1]
+    service_one, executor_one, _ = _service()
+    service_two, executor_two, _ = _service()
+    service_one.decide(_command(inverse_conversion_derivations=(baseline, other)))
+    service_two.decide(_command(inverse_conversion_derivations=(other, baseline)))
+    assert (
+        executor_one.executed_intents[0].request_fingerprint
+        == executor_two.executed_intents[0].request_fingerprint
+    )
 
 
 def test_unexpected_advisor_exception_never_becomes_approval() -> None:
@@ -329,7 +390,7 @@ def test_service_constructor_rejects_live_mode_and_empty_node() -> None:
         "executor": executor,
         "audit_repository": InMemoryAuditRepository(),
     }
-    with pytest.raises(ValueError, match="paper"):
+    with pytest.raises(ValueError, match="live"):
         DecisionService(node_id="paper-node", trading_mode=TradingMode.LIVE, **common)
     with pytest.raises(ValueError, match="node_id"):
         DecisionService(node_id="", trading_mode=TradingMode.PAPER, **common)

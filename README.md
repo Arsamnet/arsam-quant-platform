@@ -1,19 +1,22 @@
 # Arsam Quant Platform
 
 A production-oriented engineering foundation for a measurable, reproducible, risk-controlled,
-AI-assisted FX platform. Version **0.4.0** adds offline, read-only MT5 broker-contract validation
-while remaining paper-only: it contains no MT5 order submission, broker execution connection, or
-live-trading path.
+AI-assisted FX platform. Version **0.5.0** adds guarded real execution against one exact FIBOGroup
+DEMO environment. It is disabled by default, limited to 0.01 lot and one position, and is not
+production-ready. Live trading remains impossible.
 
 The example previous-close strategy is deliberately illustrative and makes no claim of profit or
-statistical edge.
+statistical edge. Its stop is expressed as 100 reviewed symbol ticks, not one cross-symbol absolute
+price distance.
 
 ## Safety status
 
-- Only `FX_TRADING_MODE=paper` starts; `demo` and `live` fail configuration validation.
+- `paper` remains the safe default. `demo` starts only with explicit enablement, locked identity,
+  and an environment-owned secret. `live` always fails startup.
 - AI is disabled by default, advisory only, schema constrained, and cannot create an order.
 - Risk rejection prevents construction and execution of an intent.
-- The only executor is an in-memory paper fake with ID/nonce replay protection.
+- Paper uses the in-memory fake. Demo approvals enter a synchronized local SQLite outbox; the API
+  never calls MT5 directly.
 - The API binds to loopback and rejects non-loopback configuration.
 - Financial inputs are decimal JSON strings and domain calculations use `Decimal`.
 - Unknown symbols stop before strategy/advisory work; risk repeats symbol validation independently.
@@ -23,9 +26,11 @@ statistical edge.
 - Dataset, strategy, risk, execution, run, trade, and report identities are reproducible.
 - Read-only MT5 exports normalize to immutable Decimal/UTC broker snapshots with separate full and
   contract SHA-256 fingerprints.
-- Broker validation reports PASS/INFO/WARNING/BLOCKING checks and cannot enable demo or live mode.
+- Broker validation remains read-only and cannot enable execution.
 - The MQL5 metadata probe is automatically scanned for forbidden trade APIs and was independently
   compiled in Windows MetaEditor with `0 errors, 0 warnings` before real read-only FIBOGroup capture.
+- A separate default-off MQL5 EA is the sole reviewed `OrderSend` boundary and rechecks DEMO mode,
+  broker/account identity, exposure, SL/TP, spread, margin, replay, and positions inside MT5.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), and
 [docs/index.md](docs/index.md) before extending the system.
@@ -72,7 +77,29 @@ node ID, and request/market/account timestamps no more than 30 seconds old. All 
 P/L, and volumes on the wire are strings such as `"1.1002"`, never JSON numbers. The detailed
 contract and HMAC procedure are in [trading-node.md](docs/architecture/trading-node.md). Accounts
 default to USD for v1 compatibility; symbols whose tick value is not in the account currency require
-an explicit fresh directed conversion rate.
+an explicit fresh directed conversion rate. Schema 1.0 also accepts a complete exact reverse-pair
+Bid/Ask snapshot in `inverse_conversion_quotes`; for inverse conversion of stop-loss exposure from
+JPY to USD using USDJPY it derives the loss-side rate `1 / bid`, retains provenance in request
+identity, and never infers a cross rate. Positive/profit conversion is a separate concept for which
+the reviewed MT5 evidence corresponds to `1 / ask`.
+
+## Guarded Windows DEMO validation
+
+Do not attempt this on macOS/Linux or a live account. On the intended Windows node, configure the
+explicit demo variables in `.env`, then run:
+
+```powershell
+./scripts/deploy-demo-node.ps1 -Mt5DataPath "<terminal-data-path>" -InstallEA
+./scripts/start-demo-node.ps1
+./scripts/check-demo-node.ps1
+```
+
+Compile `ArsamDemoExecutionGuard.mq5` in MetaEditor and require `0 errors / 0 warnings`. Add
+`http://127.0.0.1:8000` to MT5 WebRequest allowlisting, attach the EA with
+`EnableDemoExecution=false`, complete every negative gate, then explicitly arm it only for an
+approved controlled test. See the
+[demo deployment runbook](docs/runbooks/demo-deployment.md) and
+[execution contract](docs/execution/demo-execution-contract.md).
 
 ## Deterministic backtest
 
@@ -147,8 +174,15 @@ in-memory audit repository; switching runtime persistence requires a reviewed co
 
 ## Project status and next work
 
-The platform validates architecture, simulation reproducibility, and an offline broker-calibration
-workflow—not trading performance or universal broker equivalence. Real read-only FIBOGroup demo
-calibration for EURUSD, GBPUSD, and USDJPY, including repeated contract-drift validation, is complete
-for 0.4.0. Demo execution remains unavailable and out of scope until separate security, operational,
-execution-guard, reconciliation, and approval gates are complete.
+The implementation is ready for continued controlled Windows engineering validation, not release.
+EURUSD completed the full 0.01 DEMO execution/reconciliation/replay/kill/restart validation. GBPUSD
+then completed the required follow-up execution/protection/reconciliation gate; it did not repeat
+the full replay/restart/kill-switch suite. The closed trades' net results are execution evidence
+only, not strategy-performance evidence. A USDJPY request without conversion correctly failed with
+`conversion_rate_unavailable`. The controlled USDJPY 0.01 DEMO execution/reconciliation has now
+passed, leaving zero open positions and zero pending orders after manual close. That test exposed
+a stale-interactive-submission gap: the broker-safe EA refreshed market price, but the reviewed
+intent price could drift before send. The branch now adds a file-based fail-closed USDJPY
+submission harness plus an independent MQL5 intent-price-drift gate on both initial and final ticks.
+The changed EA source still requires a fresh Windows MetaEditor compile and a negative drift-gate
+validation before final v0.5.0 merge/tag. Windows infrastructure hardening remains deferred.

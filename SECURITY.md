@@ -2,8 +2,8 @@
 
 ## Supported version
 
-Version 0.4.x receives security fixes during bootstrap. It is paper-only and must not be used for
-real-money or broker-demo execution.
+Version 0.5.x supports only paper and the specifically guarded FIBOGroup DEMO environment. It must
+never be used for a live or production account.
 
 ## Reporting
 
@@ -29,6 +29,13 @@ Preserve logs and timestamps without copying secrets.
   account logins or credentials.
 - Keep the MQL5 metadata probe read-only; the forbidden-API scan supplements but does not replace
   human review and actual MetaEditor compilation.
+- Keep the demo API on `127.0.0.1`, require its environment-owned token, and never log headers.
+- Keep both kill switches default-off. Never add a demo-account override or a second trade boundary.
+- Treat claimed/unknown execution as unresolved; reconcile magic/comment broker state before any
+  further order and never automatically retry a submission.
+
+Windows account, Defender, firewall, service isolation, full ACL, database, backup, and production
+monitoring hardening are deliberately deferred from 0.5.0. This is not production readiness.
 
 See [threat-model.md](docs/security/threat-model.md),
 [windows-server-hardening.md](docs/runbooks/windows-server-hardening.md), and

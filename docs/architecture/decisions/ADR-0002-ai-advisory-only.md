@@ -12,7 +12,7 @@ exposed to untrusted news content and schema/prompt failures.
 
 AI receives a candidate signal and returns only bounded structured advisory fields. It has no
 execution adapter, credentials, arbitrary code/URL/tool fields, or authority over volume and risk.
-Validated advice proceeds through deterministic risk and the future MQL5 validator. Disabled is an
+Validated advice proceeds through deterministic risk and the MQL5 validator. Disabled is an
 explicit configured state; unexpected unavailable or invalid states reject.
 
 ## Alternatives Considered

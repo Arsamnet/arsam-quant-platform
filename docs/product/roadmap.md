@@ -11,10 +11,10 @@
    validation, calculation calibration foundation, read-only probe, safety scan, synthetic tests,
    independent Windows MetaEditor compilation, and repeated real FIBOGroup demo calibration for
    EURUSD/GBPUSD/USDJPY. No execution.
-5. **Later milestone—demo validation:** add position state and signed localhost intent polling only
-   after the independent security, runtime-isolation, reconciliation, and approval gates are complete,
-   then explicit demo mode after operational approval, fault injection,
-   reconciliation, and kill-switch runbooks. Live remains disabled.
+5. **0.5.0 guarded demo execution (engineering complete; Windows evidence pending):** explicit demo
+   startup, durable localhost outbox, authenticated polling, sole MQL5 execution guard, broker-side
+   SL/TP, dual kill switches, idempotency/restart reconciliation, and operator runbook. Live remains
+   forbidden; release waits for compile and controlled broker evidence.
 6. **Research expansion:** economic calendar fixture/provider, news classification isolation,
    walk-forward/Monte Carlo evaluation, and versioned AI assessment datasets.
 7. **Commercialization:** separately reviewed control plane, node identity, entitlements, secure
