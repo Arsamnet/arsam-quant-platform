@@ -3,15 +3,16 @@
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from pydantic import SecretStr
 
+from fx_platform.application.autonomy import AutonomousSnapshotError
 from fx_platform.autonomous_cli import read_fresh_snapshot, validate_ai_only
 from fx_platform.config import AiMode, Settings
 from fx_platform.domain.advisory import AiAssessmentStatus
-from fx_platform.application.autonomy import AutonomousSnapshotError
 
 
 class _AiClient:
@@ -120,7 +121,7 @@ def test_ai_only_validation_calls_advisor_without_creating_outbox(tmp_path: Path
     assert assessment.status is AiAssessmentStatus.AVAILABLE
     assert assessment.direction_preference is not None
     assert assessment.direction_preference.value == "sell"
-    assert assessment.confidence == 0.75
+    assert assessment.confidence == Decimal("0.75")
     assert client.calls == 1
     assert client.payload is not None
     assert not outbox_path.exists()
