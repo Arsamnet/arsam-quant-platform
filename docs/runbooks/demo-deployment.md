@@ -223,3 +223,18 @@ tick-normalized SL/TP, broker execution, and reconciliation paths. The new drift
 still requires a fresh Windows MetaEditor `0 errors, 0 warnings` compile and an explicit negative
 drift test before PR merge/tag. No additional broker order is required merely to prove the negative
 drift gate.
+
+For that explicit negative gate, use
+`scripts/invoke-usdjpy-intent-price-drift-negative-test.ps1` rather than an interactive paste.
+The harness requires a fresh `ReadOnlyMetadataProbe` observation, a clean explicitly reviewed
+commit, the exact DEMO broker/account contract, zero operator-reported open positions, and a clean
+durable outbox. It derives one synthetic USDJPY SELL snapshot at approximately half the fresh
+broker Bid while preserving the observed spread. Before the single decision POST it proves both
+that the immutable requested price exceeds the 10-point drift threshold and that the strategy's
+expected SELL stop remains at least 10,000 points below the observed broker Bid, giving the
+independent stop-direction guard a second pre-`OrderCheck` rejection path.
+
+The EA must be armed only for this negative test and disabled immediately afterward. The expected
+runtime evidence is `intent_price_drift_exceeded`, `rejected` increasing by exactly one,
+`position_confirmed` remaining unchanged, no unresolved durable state, and no broker position or
+pending order. Any ambiguous submission outcome is a no-retry/manual-reconciliation event.
