@@ -4,6 +4,9 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
 HARNESS = REPOSITORY_ROOT / "scripts" / "invoke-reviewed-usdjpy-demo-decision.ps1"
+NEGATIVE_DRIFT_HARNESS = (
+    REPOSITORY_ROOT / "scripts" / "invoke-usdjpy-intent-price-drift-negative-test.ps1"
+)
 
 
 def test_harness_fails_closed_before_or_during_single_submission() -> None:
@@ -34,3 +37,28 @@ def test_harness_locks_reviewed_environment_and_inverse_quote_provenance() -> No
     assert 'source_symbol = "USDJPY"' in source
     assert 'pair_base_currency = "USD"' in source
     assert 'pair_quote_currency = "JPY"' in source
+
+
+def test_negative_drift_harness_has_two_pre_order_safety_rejections() -> None:
+    source = NEGATIVE_DRIFT_HARNESS.read_text(encoding="utf-8")
+
+    assert '$ErrorActionPreference = "Stop"' in source
+    assert "Set-StrictMode -Version Latest" in source
+    assert source.count('Uri = "http://127.0.0.1:8000/v1/decision"') == 1
+    assert '$SyntheticBid = [decimal]::Floor' in source
+    assert "$DriftPoints -le $ReviewedDeviationPoints" in source
+    assert "$ExpectedStopLoss -ge $ActualAsk" in source
+    assert '$RequiredSecondaryMarginPoints = [decimal]"10000"' in source
+    assert "$SecondaryMarginPoints -lt $RequiredSecondaryMarginPoints" in source
+    assert "No automatic retry is permitted." in source
+    assert "DO NOT rerun" in source
+
+
+def test_negative_drift_harness_requires_rejection_without_position_confirmation() -> None:
+    source = NEGATIVE_DRIFT_HARNESS.read_text(encoding="utf-8")
+
+    assert "NEGATIVE DRIFT TEST DURABLE REJECTION OBSERVED." in source
+    assert "$Confirmed -ne $BaselineConfirmed" in source
+    assert "$Rejected -eq ($BaselineRejected + 1)" in source
+    assert "intent_price_drift_exceeded" in source
+    assert "position_confirmed changed during the negative drift test" in source
