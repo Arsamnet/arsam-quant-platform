@@ -14,7 +14,8 @@ price distance.
 
 - `paper` remains the safe default. `demo` starts only with explicit enablement, locked identity,
   and an environment-owned secret. `live` always fails startup.
-- AI is disabled by default, advisory only, schema constrained, and cannot create an order.
+- AI is disabled by default, advisory only, schema constrained, and cannot create an order. When
+  AI is required, neutral advice, confidence below 0.60, or uncertainty above 0.50 fails closed.
 - Autonomous DEMO requires explicit enablement plus `FX_AI_MODE=openai` and
   `FX_AI_REQUIRED=true`; provider/schema failure therefore fails closed before execution.
 - Risk rejection prevents construction and execution of an intent.
