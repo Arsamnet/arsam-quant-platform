@@ -154,9 +154,7 @@ class AutonomousDemoSupervisor:
             # Mark before the external AI call. An ambiguous infrastructure failure must never
             # trigger an automatic retry of the same bar in this process.
             self._last_processed_bar[symbol] = observation.decision_bar_time
-            outcome = self._service.decide(
-                self._build_command(snapshot, observation, now)
-            )
+            outcome = self._service.decide(self._build_command(snapshot, observation, now))
             outcomes.append(outcome)
             if outcome.status is DecisionOutcomeStatus.DEMO_QUEUED:
                 break
@@ -165,8 +163,7 @@ class AutonomousDemoSupervisor:
     def _has_blocking_execution_state(self) -> bool:
         counts = self._execution_state.status_counts()
         return any(
-            count > 0 and status in _BLOCKING_EXECUTION_STATUSES
-            for status, count in counts.items()
+            count > 0 and status in _BLOCKING_EXECUTION_STATUSES for status, count in counts.items()
         )
 
     def _validate_snapshot_time(self, snapshot: AutonomousSnapshot, now: datetime) -> None:
@@ -185,9 +182,7 @@ class AutonomousDemoSupervisor:
         now: datetime,
     ) -> DecisionCommand:
         symbol = observation.market.symbol
-        stable_key = (
-            f"{self._node_id}:{symbol}:{observation.decision_bar_time.isoformat()}"
-        )
+        stable_key = f"{self._node_id}:{symbol}:{observation.decision_bar_time.isoformat()}"
         request_id = uuid5(_AUTONOMY_NAMESPACE, stable_key)
         nonce_digest = hashlib.sha256(stable_key.encode("utf-8")).hexdigest()[:48]
         return DecisionCommand(
