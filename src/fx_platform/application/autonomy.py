@@ -46,9 +46,15 @@ class AutonomousMarketObservation:
     def __post_init__(self) -> None:
         if self.decision_bar_time.tzinfo is None:
             raise ValueError("decision_bar_time must be timezone-aware")
-        if self.base_currency != self.base_currency.upper() or len(self.base_currency) != _CURRENCY_CODE_LENGTH:
+        if (
+            self.base_currency != self.base_currency.upper()
+            or len(self.base_currency) != _CURRENCY_CODE_LENGTH
+        ):
             raise ValueError("base_currency must be a three-letter uppercase code")
-        if self.quote_currency != self.quote_currency.upper() or len(self.quote_currency) != _CURRENCY_CODE_LENGTH:
+        if (
+            self.quote_currency != self.quote_currency.upper()
+            or len(self.quote_currency) != _CURRENCY_CODE_LENGTH
+        ):
             raise ValueError("quote_currency must be a three-letter uppercase code")
 
 
