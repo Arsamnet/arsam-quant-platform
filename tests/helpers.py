@@ -180,22 +180,20 @@ def make_assessment(
     uncertainty: Decimal | None = None,
 ) -> AiAssessment:
     """Build bounded AI advice tied to the default signal."""
+    default_confidence = (
+        Decimal("0.75") if status is AiAssessmentStatus.AVAILABLE else Decimal(0)
+    )
+    default_uncertainty = (
+        Decimal("0.25") if status is AiAssessmentStatus.AVAILABLE else Decimal(1)
+    )
     return AiAssessment(
         assessment_id=ASSESSMENT_ID,
         signal_id=signal_id,
         created_at=NOW,
         status=status,
         direction_preference=direction,
-        confidence=(
-            confidence
-            if confidence is not None
-            else Decimal("0.75") if status is AiAssessmentStatus.AVAILABLE else Decimal(0)
-        ),
+        confidence=default_confidence if confidence is None else confidence,
         market_regime="uncertain",
-        uncertainty=(
-            uncertainty
-            if uncertainty is not None
-            else Decimal("0.25") if status is AiAssessmentStatus.AVAILABLE else Decimal(1)
-        ),
+        uncertainty=default_uncertainty if uncertainty is None else uncertainty,
         reasoning_tags=("test_fixture",),
     )
