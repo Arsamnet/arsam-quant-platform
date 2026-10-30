@@ -47,7 +47,7 @@ def test_validation_cli_writes_deterministic_report(tmp_path: Path, capsys) -> N
     assert first.read_bytes() == second.read_bytes()
     report = json.loads(first.read_text(encoding="utf-8"))
     assert report["readiness"] == "ready"
-    assert report["platform_version"] == "0.5.0"
+    assert report["platform_version"] == "0.6.0"
 
 
 def test_validation_cli_returns_blocking_exit_and_report(tmp_path: Path, capsys) -> None:
