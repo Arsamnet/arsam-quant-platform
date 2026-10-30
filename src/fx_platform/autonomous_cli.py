@@ -15,14 +15,9 @@ from fx_platform.observability import configure_logging
 logger = logging.getLogger(__name__)
 
 
-def build_autonomous_supervisor(settings: Settings) -> AutonomousDemoSupervisor:
-    """Compose the autonomous loop from reviewed local-only boundaries."""
-    if not settings.autonomous_demo_enabled:
-        raise RuntimeError("FX_AUTONOMOUS_DEMO_ENABLED=true is required")
-    runtime = build_runtime(settings)
-    if runtime.demo_execution_store is None:
-        raise RuntimeError("autonomous DEMO requires the durable demo execution store")
-    source = FileAutonomousSnapshotSource(
+def build_snapshot_source(settings: Settings) -> FileAutonomousSnapshotSource:
+    """Build the strict local MT5 snapshot boundary without starting trading logic."""
+    return FileAutonomousSnapshotSource(
         path=settings.autonomous_snapshot_path,
         expected_broker_company=settings.demo_expected_broker_company,
         expected_broker_server=settings.demo_expected_broker_server,
@@ -32,9 +27,18 @@ def build_autonomous_supervisor(settings: Settings) -> AutonomousDemoSupervisor:
         account_id=settings.autonomous_account_id,
         max_tick_age_seconds=settings.autonomous_max_snapshot_age_seconds,
     )
+
+
+def build_autonomous_supervisor(settings: Settings) -> AutonomousDemoSupervisor:
+    """Compose the autonomous loop from reviewed local-only boundaries."""
+    if not settings.autonomous_demo_enabled:
+        raise RuntimeError("FX_AUTONOMOUS_DEMO_ENABLED=true is required")
+    runtime = build_runtime(settings)
+    if runtime.demo_execution_store is None:
+        raise RuntimeError("autonomous DEMO requires the durable demo execution store")
     return AutonomousDemoSupervisor(
         service=runtime.service,
-        source=source,
+        source=build_snapshot_source(settings),
         execution_state=runtime.demo_execution_store,
         clock=SystemClock(),
         node_id=settings.active_node_id,
@@ -47,10 +51,16 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run guarded AI-assisted autonomous trading against the reviewed DEMO account."
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--once",
         action="store_true",
-        help="Evaluate at most one snapshot cycle and exit without retrying.",
+        help="Evaluate at most one decision cycle and exit without retrying.",
+    )
+    mode.add_argument(
+        "--validate-snapshot",
+        action="store_true",
+        help="Validate the local MT5 snapshot and exit without AI, risk, or execution.",
     )
     return parser
 
@@ -60,8 +70,19 @@ def main() -> None:
     args = _parser().parse_args()
     settings = Settings()
     configure_logging(settings.log_level)
-    supervisor = build_autonomous_supervisor(settings)
 
+    if args.validate_snapshot:
+        snapshot = build_snapshot_source(settings).read()
+        logger.info(
+            "autonomous_snapshot_valid",
+            extra={
+                "symbols": ",".join(sorted(item.market.symbol for item in snapshot.markets)),
+                "open_position_count": snapshot.account.open_position_count,
+            },
+        )
+        return
+
+    supervisor = build_autonomous_supervisor(settings)
     logger.info(
         "autonomous_demo_started",
         extra={
