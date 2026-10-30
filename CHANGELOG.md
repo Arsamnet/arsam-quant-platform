@@ -7,6 +7,14 @@ uses Semantic Versioning during pre-production.
 
 ### Added
 
+- Guarded v0.6 autonomous DEMO supervisor with one-bar deduplication, unresolved-outbox blocking,
+  open-position blocking, deterministic request identity, and one queued intent maximum per cycle.
+- Concrete OpenAI Responses API client with a strict structured advisory schema, fixed HTTPS
+  endpoint, no tool authority, disabled response storage, bounded timeout, and fail-closed errors.
+- Read-only MQL5 autonomous snapshot probe exporting DEMO account state, daily realized P/L,
+  Bid/Ask, previous D1 close, decision-bar identity, trade mode, and broker-relative tick age.
+- Snapshot-only validation CLI, Windows autonomous startup/install scripts, ADR-0023, and an
+  autonomous DEMO runbook.
 - Explicit audited exact-pair inverse conversion input for schema 1.0, retaining broker symbol,
   pair currencies, Bid/Ask, UTC observation, `inverse_exact_pair`/Bid loss-side provenance, and the
   final directed risk rate in deterministic request identity. Cross-rate inference remains
@@ -28,7 +36,10 @@ uses Semantic Versioning during pre-production.
 
 ### Changed
 
-- Prepare development version 0.5.0 while preserving paper behavior and deterministic backtests.
+- Prepare development version 0.6.0 while preserving the v0.5 guarded DEMO execution boundary,
+  paper behavior, and deterministic backtests.
+- Wire `FX_AI_MODE=openai` into the runtime while keeping AI advisory-only and requiring
+  `FX_AI_REQUIRED=true` for autonomous DEMO.
 - Complete the full controlled EURUSD execution/reconciliation/replay/kill/restart validation, then
   complete the required GBPUSD follow-up execution/protection/reconciliation gate. This is
   execution-path evidence, not strategy-profitability evidence; GBPUSD did not independently repeat
