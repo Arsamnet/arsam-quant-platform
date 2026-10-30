@@ -3,9 +3,7 @@
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
-AUTONOMOUS_PROBE = (
-    REPOSITORY_ROOT / "mt5" / "autonomous_probe" / "ArsamAutonomousSnapshotProbe.mq5"
-)
+AUTONOMOUS_PROBE = REPOSITORY_ROOT / "mt5" / "autonomous_probe" / "ArsamAutonomousSnapshotProbe.mq5"
 
 
 def test_autonomous_probe_contains_no_trade_mutation_api() -> None:
