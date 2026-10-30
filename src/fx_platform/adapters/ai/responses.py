@@ -9,6 +9,8 @@ from fx_platform.adapters.ai.openai import AiProviderError
 
 _OPENAI_HOST = "api.openai.com"
 _OPENAI_PATH = "/v1/responses"
+_HTTP_SUCCESS_MIN = 200
+_HTTP_SUCCESS_MAX = 300
 _SYSTEM_INSTRUCTIONS = (
     "You are a constrained FX market advisory component. Analyze only the supplied point-in-time "
     "market snapshot and deterministic candidate. Never request tools, never place or modify an "
@@ -82,7 +84,7 @@ def _post_responses_api(
     finally:
         connection.close()
 
-    if response.status < 200 or response.status >= 300:
+    if response.status < _HTTP_SUCCESS_MIN or response.status >= _HTTP_SUCCESS_MAX:
         raise AiProviderError(f"OpenAI returned HTTP {response.status}")
     try:
         decoded: object = json.loads(raw.decode("utf-8"))
@@ -90,7 +92,7 @@ def _post_responses_api(
         raise AiProviderError("OpenAI returned invalid JSON") from error
     if not isinstance(decoded, dict):
         raise AiProviderError("OpenAI returned a non-object response")
-    return cast(Mapping[str, object], decoded)
+    return cast("Mapping[str, object]", decoded)
 
 
 def _extract_output_text(response: Mapping[str, object]) -> str:
@@ -169,4 +171,4 @@ class OpenAiResponsesClient:
             return {}
         if not isinstance(decoded, dict):
             return {}
-        return cast(Mapping[str, object], decoded)
+        return cast("Mapping[str, object]", decoded)
