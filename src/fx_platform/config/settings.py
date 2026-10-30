@@ -210,6 +210,10 @@ class Settings(BaseSettings):
             raise ValueError("autonomous trading is permitted only in guarded DEMO mode")
         if self.ai_mode is not AiMode.OPENAI or not self.ai_required:
             raise ValueError("autonomous DEMO requires OpenAI advisory with FX_AI_REQUIRED=true")
+        if self.ai_min_confidence < Decimal("0.60"):
+            raise ValueError("autonomous DEMO requires FX_AI_MIN_CONFIDENCE >= 0.60")
+        if self.ai_max_uncertainty > Decimal("0.50"):
+            raise ValueError("autonomous DEMO requires FX_AI_MAX_UNCERTAINTY <= 0.50")
         if not self.autonomous_account_id:
             raise ValueError("autonomous DEMO requires a stable non-secret account identifier")
 
