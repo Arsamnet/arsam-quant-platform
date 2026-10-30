@@ -35,7 +35,10 @@ class RiskRejection(StrEnum):
     POSITION_LIMIT_EXCEEDED = "position_limit_exceeded"
     DAILY_LOSS_LIMIT_EXCEEDED = "daily_loss_limit_exceeded"
     AI_REQUIRED = "ai_required"
+    AI_DIRECTION_REQUIRED = "ai_direction_required"
     AI_DIRECTION_CONFLICT = "ai_direction_conflict"
+    AI_CONFIDENCE_TOO_LOW = "ai_confidence_too_low"
+    AI_UNCERTAINTY_TOO_HIGH = "ai_uncertainty_too_high"
     TRADE_RISK_LIMIT_EXCEEDED = "trade_risk_limit_exceeded"
     CONVERSION_RATE_UNAVAILABLE = "conversion_rate_unavailable"
     CONVERSION_RATE_AMBIGUOUS = "conversion_rate_ambiguous"
@@ -61,6 +64,8 @@ class RiskLimits:
     max_conversion_age: timedelta = timedelta(seconds=30)
     max_future_skew: timedelta = timedelta(seconds=2)
     ai_required: bool = False
+    ai_min_confidence: Decimal = Decimal("0.60")
+    ai_max_uncertainty: Decimal = Decimal("0.50")
     economic_calendar_required: bool = False
     require_take_profit: bool = False
     event_blackout_before: timedelta = timedelta(minutes=15)
@@ -85,9 +90,12 @@ class RiskLimits:
         for field_name, fraction in (
             ("max_daily_loss_fraction", self.max_daily_loss_fraction),
             ("max_trade_risk_fraction", self.max_trade_risk_fraction),
+            ("ai_min_confidence", self.ai_min_confidence),
+            ("ai_max_uncertainty", self.ai_max_uncertainty),
         ):
-            if fraction > Decimal(1):
-                raise ValueError(f"{field_name} must not exceed one")
+            require_finite_decimal(fraction, field_name)
+            if fraction < Decimal(0) or fraction > Decimal(1):
+                raise ValueError(f"{field_name} must be between zero and one")
         if self.max_open_positions < 1:
             raise ValueError("max_open_positions must be at least one")
         for field_name, duration in (
