@@ -43,5 +43,6 @@ same change.
 - [Local development](runbooks/local-development.md)
 - [Windows Server hardening](runbooks/windows-server-hardening.md)
 - [Demo deployment](runbooks/demo-deployment.md)
+- [Autonomous AI-assisted DEMO](runbooks/autonomous-demo.md)
 - [Backup and restore](runbooks/backup-restore.md)
 - [Incident response](runbooks/incident-response.md)

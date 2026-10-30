@@ -3,13 +3,18 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
-from fx_platform.adapters.ai import NullAiAdvisor
+from fx_platform.adapters.ai import (
+    NullAiAdvisor,
+    OpenAiAdvisor,
+    OpenAiResponsesClient,
+    StructuredAiClient,
+)
 from fx_platform.adapters.clock import SystemClock
 from fx_platform.adapters.economic import NullEconomicCalendarProvider
 from fx_platform.adapters.execution import FakeExecutionAdapter, SqliteDemoExecutionStore
 from fx_platform.adapters.market import bootstrap_symbol_specifications
 from fx_platform.adapters.persistence import InMemoryAuditRepository
-from fx_platform.application.ports import ExecutionAdapter
+from fx_platform.application.ports import AiAdvisor, ExecutionAdapter
 from fx_platform.application.service import DecisionService
 from fx_platform.config import AiMode, Settings
 from fx_platform.domain.common import TradingMode
@@ -27,12 +32,12 @@ class Runtime:
     demo_execution_store: SqliteDemoExecutionStore | None
 
 
-def build_runtime(settings: Settings) -> Runtime:
-    """Build a paper-only local runtime with no broker or remote AI connectivity."""
-    if settings.ai_mode is not AiMode.DISABLED:
-        raise RuntimeError(
-            "The OpenAI client is an adapter boundary only; inject a reviewed client explicitly"
-        )
+def build_runtime(
+    settings: Settings,
+    *,
+    ai_client: StructuredAiClient | None = None,
+) -> Runtime:
+    """Build the local paper/demo runtime without granting AI execution authority."""
     clock = SystemClock()
     demo_store = None
     if settings.trading_mode is TradingMode.DEMO:
@@ -40,6 +45,22 @@ def build_runtime(settings: Settings) -> Runtime:
         executor: ExecutionAdapter = demo_store
     else:
         executor = FakeExecutionAdapter(clock)
+
+    ai_advisor: AiAdvisor
+    if settings.ai_mode is AiMode.DISABLED:
+        ai_advisor = NullAiAdvisor()
+    else:
+        api_key = settings.openai_api_key
+        model = settings.openai_model
+        if api_key is None or model is None:
+            raise RuntimeError("validated OpenAI settings unexpectedly missing")
+        client = ai_client or OpenAiResponsesClient(
+            api_key=api_key.get_secret_value(),
+            model=model,
+            timeout_seconds=settings.openai_timeout_seconds,
+        )
+        ai_advisor = OpenAiAdvisor(client, model)
+
     audit_repository = InMemoryAuditRepository()
     risk_engine = RiskEngine(
         RiskLimits(
@@ -62,6 +83,8 @@ def build_runtime(settings: Settings) -> Runtime:
             max_daily_loss_absolute_cap=settings.max_daily_loss_absolute_cap,
             max_trade_risk_fraction=settings.max_trade_risk_fraction,
             ai_required=settings.ai_required,
+            ai_min_confidence=settings.ai_min_confidence,
+            ai_max_uncertainty=settings.ai_max_uncertainty,
             economic_calendar_required=settings.economic_calendar_required,
             require_take_profit=(
                 settings.demo_require_take_profit
@@ -80,7 +103,7 @@ def build_runtime(settings: Settings) -> Runtime:
             if settings.trading_mode is TradingMode.DEMO
             else settings.allowed_symbols
         ),
-        ai_advisor=NullAiAdvisor(),
+        ai_advisor=ai_advisor,
         risk_engine=risk_engine,
         calendar=NullEconomicCalendarProvider(),
         executor=executor,

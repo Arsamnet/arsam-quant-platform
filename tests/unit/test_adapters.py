@@ -58,7 +58,7 @@ def test_openai_adapter_accepts_only_bounded_structured_output() -> None:
             "confidence": "0.75",
             "market_regime": "trending",
             "uncertainty": "0.25",
-            "reasoning_tags": ("trend_alignment",),
+            "reasoning_tags": ["trend_alignment"],
         }
     )
     advisor = OpenAiAdvisor(client, "configured-model")
@@ -86,14 +86,14 @@ def test_openai_adapter_accepts_only_bounded_structured_output() -> None:
             "confidence": 0.75,
             "market_regime": "trending",
             "uncertainty": "0.25",
-            "reasoning_tags": (),
+            "reasoning_tags": [],
         },
         {
             "direction_preference": "execute_now",
             "confidence": "0.75",
             "market_regime": "trending",
             "uncertainty": "0.25",
-            "reasoning_tags": (),
+            "reasoning_tags": [],
             "lot_size": "1000",
         },
     ],

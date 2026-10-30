@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arsam-quant-platform"
-version = "0.5.0"
+version = "0.6.0"
 description = "Risk-controlled, AI-assisted FX trading platform foundation"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -39,6 +39,7 @@ fx-mt5-import = "fx_platform.broker_validation.cli:import_main"
 fx-broker-validate = "fx_platform.broker_validation.cli:validate_main"
 fx-broker-diff = "fx_platform.broker_validation.cli:diff_main"
 fx-demo-config-check = "fx_platform.demo_node_cli:main"
+fx-autonomous-demo = "fx_platform.autonomous_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fx_platform"]

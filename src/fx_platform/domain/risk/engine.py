@@ -230,12 +230,21 @@ class RiskEngine:
             AiAssessmentStatus.UNAVAILABLE,
         } or (self._limits.ai_required and assessment.status is not AiAssessmentStatus.AVAILABLE):
             reasons.append(RiskRejection.AI_REQUIRED)
-        if (
-            assessment.status is AiAssessmentStatus.AVAILABLE
-            and assessment.direction_preference is not None
-            and assessment.direction_preference is not signal.side
-        ):
-            reasons.append(RiskRejection.AI_DIRECTION_CONFLICT)
+        if assessment.status is AiAssessmentStatus.AVAILABLE:
+            if self._limits.ai_required and assessment.direction_preference is None:
+                reasons.append(RiskRejection.AI_DIRECTION_REQUIRED)
+            elif (
+                assessment.direction_preference is not None
+                and assessment.direction_preference is not signal.side
+            ):
+                reasons.append(RiskRejection.AI_DIRECTION_CONFLICT)
+            if self._limits.ai_required and assessment.confidence < self._limits.ai_min_confidence:
+                reasons.append(RiskRejection.AI_CONFIDENCE_TOO_LOW)
+            if (
+                self._limits.ai_required
+                and assessment.uncertainty > self._limits.ai_max_uncertainty
+            ):
+                reasons.append(RiskRejection.AI_UNCERTAINTY_TOO_HIGH)
 
     def _check_economic_events(
         self,
