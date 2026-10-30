@@ -48,7 +48,7 @@ class _AiResponse(BaseModel):
     confidence: ExactDecimal = Field(ge=0, le=1)
     market_regime: Literal["trending", "ranging", "volatile", "uncertain"]
     uncertainty: ExactDecimal = Field(ge=0, le=1)
-    reasoning_tags: tuple[str, ...] = Field(max_length=16)
+    reasoning_tags: list[str] = Field(max_length=16)
 
 
 class OpenAiAdvisor:
@@ -113,7 +113,7 @@ class OpenAiAdvisor:
                 confidence=response.confidence,
                 market_regime=response.market_regime,
                 uncertainty=response.uncertainty,
-                reasoning_tags=response.reasoning_tags,
+                reasoning_tags=tuple(response.reasoning_tags),
             )
         except (ValidationError, ValueError):
             return self._failed_assessment(
