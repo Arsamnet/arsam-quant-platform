@@ -79,21 +79,34 @@ In terminal 1:
 Verify that the local health endpoint reports status=ok, trading_mode=demo, and ai_mode=openai.
 Keep the execution EA disabled.
 
-## 6. Controlled one-cycle AI validation
+## 6. AI-only validation
 
-In terminal 2:
+Before RiskEngine or outbox testing, validate one real OpenAI advisory with the execution EA still
+disabled:
+
+    uv run fx-autonomous-demo --validate-ai EURUSD
+
+This command validates the same fresh local MT5 snapshot, creates the deterministic strategy
+candidate, and calls only the structured OpenAI advisory boundary. It does not construct RiskEngine,
+does not open the SQLite outbox, and cannot call MT5 execution. The safe JSON result explicitly
+reports risk_engine_called=false, outbox_called=false, and execution_called=false.
+
+Provider/schema failure is a stop condition.
+
+## 7. Controlled one-cycle decision validation
+
+Only after AI-only validation succeeds:
 
     uv run fx-autonomous-demo --once
 
-This may call OpenAI and run the normal strategy/risk workflow. If RiskEngine approves, it can place
-one intent in the durable DEMO outbox. Because the execution EA is still disabled, no broker order
-is expected. Inspect local logs and outbox/status before proceeding. Do not blindly repeat an
-ambiguous cycle.
+This runs the normal strategy/AI/risk workflow. If RiskEngine approves, it can place one intent in
+the durable DEMO outbox. Because the execution EA is still disabled, no broker order is expected.
+Inspect local logs and outbox/status before proceeding. Do not blindly repeat an ambiguous cycle.
 
 If an approved intent was queued during this check, let it expire and verify/reconcile its durable
 state before arming the EA.
 
-## 7. Autonomous DEMO burn-in
+## 8. Autonomous DEMO burn-in
 
 Only after explicit operator approval, enable the existing execution EA and start:
 
@@ -114,7 +127,7 @@ The supervisor will not create another autonomous intent while an execution is u
 the account snapshot reports an open position. A new decision is considered at most once per symbol
 per observed bar in the running process.
 
-## 8. Stop conditions
+## 9. Stop conditions
 
 Immediately disable the execution EA and stop the supervisor on any broker/server/account identity
 mismatch, stale or malformed snapshot, unexpected symbol/trade-mode change, required-AI failure,
@@ -123,7 +136,7 @@ any LIVE account/mode indication.
 
 Never automatically retry an ambiguous broker outcome.
 
-## 9. Current limitation
+## 10. Current limitation
 
 The deterministic strategy remains PreviousCloseMomentumStrategy, which exists to prove the
 architecture and has no profitability claim. v0.6 autonomous validation must therefore be evaluated
