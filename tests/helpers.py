@@ -176,6 +176,8 @@ def make_assessment(
     status: AiAssessmentStatus = AiAssessmentStatus.DISABLED,
     direction: TradeSide | None = None,
     signal_id: UUID = SIGNAL_ID,
+    confidence: Decimal | None = None,
+    uncertainty: Decimal | None = None,
 ) -> AiAssessment:
     """Build bounded AI advice tied to the default signal."""
     return AiAssessment(
@@ -184,8 +186,16 @@ def make_assessment(
         created_at=NOW,
         status=status,
         direction_preference=direction,
-        confidence=Decimal("0.5") if status is AiAssessmentStatus.AVAILABLE else Decimal(0),
+        confidence=(
+            confidence
+            if confidence is not None
+            else Decimal("0.75") if status is AiAssessmentStatus.AVAILABLE else Decimal(0)
+        ),
         market_regime="uncertain",
-        uncertainty=Decimal("0.5") if status is AiAssessmentStatus.AVAILABLE else Decimal(1),
+        uncertainty=(
+            uncertainty
+            if uncertainty is not None
+            else Decimal("0.25") if status is AiAssessmentStatus.AVAILABLE else Decimal(1)
+        ),
         reasoning_tags=("test_fixture",),
     )
