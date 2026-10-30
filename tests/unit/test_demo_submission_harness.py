@@ -26,9 +26,9 @@ def test_harness_locks_reviewed_environment_and_inverse_quote_provenance() -> No
 
     assert '"FIBO Group, Ltd"' in source
     assert '"FIBOGroup-MT5 Server"' in source
-    assert '$Meta.account.trade_mode_code -ne 0' in source
-    assert '$Meta.account.margin_mode_code -ne 2' in source
-    assert '$Meta.account.leverage -ne 100' in source
+    assert "$Meta.account.trade_mode_code -ne 0" in source
+    assert "$Meta.account.margin_mode_code -ne 2" in source
+    assert "$Meta.account.leverage -ne 100" in source
     assert 'source_currency = "JPY"' in source
     assert 'target_currency = "USD"' in source
     assert 'source_symbol = "USDJPY"' in source
