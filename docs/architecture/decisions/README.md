@@ -26,6 +26,7 @@ the original rationale. File names use `ADR-NNNN-short-title.md`.
 - [ADR-0021: Cross-platform MT5 validation](ADR-0021-cross-platform-mt5-validation.md)
 - [ADR-0022: Guarded localhost DEMO execution](ADR-0022-guarded-demo-execution.md)
 - [ADR-0023: Guarded autonomous AI-assisted DEMO supervisor](ADR-0023-autonomous-ai-demo.md)
+- [ADR-0023: Guarded autonomous AI-assisted DEMO supervisor](ADR-0023-autonomous-ai-demo.md)
 
 ## Template
 
