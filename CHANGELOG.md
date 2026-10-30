@@ -59,6 +59,8 @@ uses Semantic Versioning during pre-production.
 
 ### Fixed
 
+- Accept JSON-array `reasoning_tags` from the strict OpenAI response schema and convert them to the
+  immutable domain tuple instead of rejecting every valid provider response under strict validation.
 - Normalize autonomous MQL5 account values with `ACCOUNT_CURRENCY_DIGITS` and market prices with
   each symbol's `SYMBOL_DIGITS` instead of exporting binary floating-point residue.
 - Block the unsafe USDJPY one-tick stop found during disabled-EA preflight; no order was placed.
