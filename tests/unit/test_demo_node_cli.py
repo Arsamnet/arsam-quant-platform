@@ -12,7 +12,7 @@ def test_demo_config_check_prints_only_safe_status(monkeypatch, capsys, tmp_path
     main([])
 
     output = capsys.readouterr().out
-    assert "PLATFORM VERSION: 0.5.0" in output
+    assert "PLATFORM VERSION: 0.6.0" in output
     assert "TRADING MODE: PAPER" in output
     assert "EXECUTION SWITCH: DISABLED" in output
     assert "LIVE MODE: FORBIDDEN" in output
