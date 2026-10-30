@@ -24,9 +24,9 @@ string BoolJson(const bool value)
    return value ? "true" : "false";
 }
 
-string DecimalJson(const double value)
+string DecimalJson(const double value, const int digits)
 {
-   return JsonEscape(DoubleToString(value, 16));
+   return JsonEscape(DoubleToString(value, digits));
 }
 
 string UtcIso(const datetime value)
@@ -109,14 +109,18 @@ string BuildSymbolJson(const string symbol)
       return "";
 
    const string profit_currency = SymbolInfoString(symbol, SYMBOL_CURRENCY_PROFIT);
+   const int symbol_digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   if(symbol_digits < 0)
+      return "";
+
    string json = "{";
    json += "\"name\":" + JsonEscape(symbol) + ",";
    json += "\"base_currency\":" + JsonEscape(SymbolInfoString(symbol, SYMBOL_CURRENCY_BASE)) + ",";
    // For reviewed FX pairs, MT5 profit currency is the quote currency.
    json += "\"quote_currency\":" + JsonEscape(profit_currency) + ",";
-   json += "\"bid\":" + DecimalJson(tick.bid) + ",";
-   json += "\"ask\":" + DecimalJson(tick.ask) + ",";
-   json += "\"previous_close\":" + DecimalJson(previous_close) + ",";
+   json += "\"bid\":" + DecimalJson(tick.bid, symbol_digits) + ",";
+   json += "\"ask\":" + DecimalJson(tick.ask, symbol_digits) + ",";
+   json += "\"previous_close\":" + DecimalJson(previous_close, symbol_digits) + ",";
    json += "\"observed_at\":" + JsonEscape(UtcIso(ServerToUtc(tick.time))) + ",";
    json += "\"decision_bar_time\":" + JsonEscape(UtcIso(ServerToUtc(bar_time))) + ",";
    json += "\"tick_age_seconds\":" + IntegerToString((int)tick_age) + ",";
@@ -178,6 +182,10 @@ bool WriteSnapshot()
       return false;
 
    const string acquired_at = UtcIso(TimeGMT());
+   const int account_currency_digits = (int)AccountInfoInteger(ACCOUNT_CURRENCY_DIGITS);
+   if(account_currency_digits < 0)
+      return false;
+
    string json = "{";
    json += "\"schema_version\":\"1.0\",";
    json += "\"mode\":\"autonomous_demo_snapshot\",";
@@ -199,9 +207,9 @@ bool WriteSnapshot()
       BoolJson((bool)AccountInfoInteger(ACCOUNT_TRADE_ALLOWED)) + ",";
    json += "\"automated_trading_allowed\":" +
       BoolJson((bool)AccountInfoInteger(ACCOUNT_TRADE_EXPERT)) + ",";
-   json += "\"balance\":" + DecimalJson(AccountInfoDouble(ACCOUNT_BALANCE)) + ",";
-   json += "\"equity\":" + DecimalJson(AccountInfoDouble(ACCOUNT_EQUITY)) + ",";
-   json += "\"daily_realized_pnl\":" + DecimalJson(daily_realized_pnl) + ",";
+   json += "\"balance\":" + DecimalJson(AccountInfoDouble(ACCOUNT_BALANCE), account_currency_digits) + ",";
+   json += "\"equity\":" + DecimalJson(AccountInfoDouble(ACCOUNT_EQUITY), account_currency_digits) + ",";
+   json += "\"daily_realized_pnl\":" + DecimalJson(daily_realized_pnl, account_currency_digits) + ",";
    json += "\"open_position_count\":" + IntegerToString(PositionsTotal());
    json += "},";
    json += "\"symbols\":" + symbols_json;
